@@ -50,17 +50,17 @@ ad9850::ad9850(hardwareDevice::MSAdevice device, QObject *parent) : genericDDS(p
 	devicePin *pin = new devicePin;
 	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Data";
-	pin->type = hardwareDevice::INPUT;
+	pin->IOtype = hardwareDevice::INPUT;
 	devicePins.insert(PIN_DATA, pin);
 	pin = new devicePin;
 	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Frequency Update";
-	pin->type = hardwareDevice::INPUT;
+	pin->IOtype = hardwareDevice::INPUT;
 	devicePins.insert(PIN_FQUD, pin);
 	pin = new devicePin;
 	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Clock";
-	pin->type = hardwareDevice::CLK;
+	pin->IOtype = hardwareDevice::CLK;
 	devicePins.insert(PIN_WCLK, pin);
 }
 
@@ -73,7 +73,7 @@ void ad9850::processNewScan()
 	}
 	foreach(int x, devicePins.value(PIN_DATA)->dataArray.keys()) {
 		QBitArray *arr = devicePins.value(PIN_DATA)->dataArray.value(x);
-		qDebug() << getDDSOutput(x) << *arr;
+		//qDebug() << "ad9850" << getDDSOutput(x) << *arr;
 	}
 }
 
@@ -96,10 +96,9 @@ void ad9850::init()
 	devicePins.value(PIN_FQUD)->dataArray.value(INIT_STEP)->setBit(registerSize, true);
 	devicePins.value(PIN_WCLK)->dataArray.value(INIT_STEP)->setBit(registerSize + 1, false);
 
-	qDebug() << "LLLLL";
-	qDebug() << *devicePins.value(PIN_WCLK)->dataArray.value(INIT_STEP);
-	qDebug() << *devicePins.value(PIN_FQUD)->dataArray.value(INIT_STEP);
-	qDebug() << *devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP);
+	qDebug() << "ad9850 wclk" << *devicePins.value(PIN_WCLK)->dataArray.value(INIT_STEP);
+	qDebug() << "ad9850 fqud" << *devicePins.value(PIN_FQUD)->dataArray.value(INIT_STEP);
+	qDebug() << "ad9850 data" << *devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP);
 
 }
 
@@ -125,7 +124,6 @@ void ad9850::registerToBuffer(quint64 *reg, int pin, quint32 step)
 		(*arr)[x] = r & (quint64)1;
 		r = r >> 1;
 	}
-	//	qDebug() << *arr;
 }
 
 hardwareDevice::clockType ad9850::getClk_type() const

@@ -63,7 +63,9 @@ public:
 	typedef enum {CLOCK_RISING_EDGE, CLOCK_FALLING_EDGE}clockType;
 	typedef struct {
 		QString name;
-		pinType type;
+		pinType IOtype;
+		int type;
+		void *hwconfig;
 		QHash<quint32, QBitArray *> dataArray;//dataarray containing the serialized bit values for each scan step
 	} devicePin;
 	virtual void processNewScan()=0;
@@ -72,7 +74,7 @@ public:
 	// gets the type of CLK this device needs, dedicated or system wide
 	virtual clockType getClk_type() const=0;
 	// gets the pins list of the device, containing the name (string), type (input, output or both) and dataarray
-	virtual QList<devicePin*> getDevicePins();
+	virtual const QHash<int, devicePin *> getDevicePins();
 	~hardwareDevice();
 	static scanStruct currentScan;
 	QHash<int, devicePin*> devicePins;

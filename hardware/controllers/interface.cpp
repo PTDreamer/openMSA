@@ -69,16 +69,18 @@ void interface::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HW
 	foreach (hardwareDevice::MSAdevice dev, devices.keys()) {
 		switch (devices.value(dev)) {
 		case hardwareDevice::LMX2326:
-			x =new lmx2326(dev, this);
-			currentHardwareDevices.insert(dev, x);
-			x->init();
+			currentHardwareDevices.insert(dev, new lmx2326(dev, this));
 			break;
 		case hardwareDevice::AD9850:
 			currentHardwareDevices.insert(dev, new ad9850(dev, this));
 		default:
 			break;
 		}
-		qDebug() << currentHardwareDevices.contains(dev);
 		currentHardwareDevices.value(dev)->init();
 	}
+}
+
+QHash<hardwareDevice::MSAdevice, hardwareDevice *> interface::getCurrentHardwareDevices() const
+{
+	return currentHardwareDevices;
 }

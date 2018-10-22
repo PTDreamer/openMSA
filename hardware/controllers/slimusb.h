@@ -32,6 +32,9 @@
 #include <QThread>
 #include <QVector>
 #include "interface.h"
+#include <QHash>
+#include "../lmx2326.h"
+#include "../ad9850.h"
 
 using namespace std;
 
@@ -62,20 +65,32 @@ public:
 	bool init(int debugLevel);
 	~slimusb();
 	bool openDevice(int deviceNumber);
+	void closeDevice();
 	bool isHotPlugCapable();
 	QList<usbDevice> getDevices();
 	bool getAutoConnect() const;
 	void setAutoConnect(bool value);
 	bool getIsConnected() const;
 	void initScan(bool inverted, double start, double end, double step);
+	void hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices);
 protected slots:
 	void commandNextStep();
 	void commandPreviousStep();
 	void autoScan();
 	void pauseScan();
 	void resumeScan();
-
+signals:
+	void disconnected();
+	void connected();
 private:
+	void signalConnected();
+	void signalDisconnected();
+	typedef struct {
+		uint8_t latch;
+		uint8_t mask;
+		uint8_t pin;
+	} parallelEqui;
+	QHash<hardwareDevice::MSAdevice, QHash<hardwareDevice::HWdevice, parallelEqui>> pinMapping;
 	libusb_device **devs; //pointer to pointer of device, used to retrieve a list of devices
 	libusb_device_handle *dev_handle; //a device handle
 	libusb_context *ctx = NULL; //a libusb session
@@ -86,6 +101,19 @@ private:
 	hotplugWorker *w = NULL;
 	static libusb_device_handle *deviceHandler;
 	bool autoConnect;
+	uint8_t data1;
+	uint8_t data2;
+	uint8_t data3;
+	uint8_t data4;
+	parallelEqui *pll1data;
+	parallelEqui *pll1le;
+	parallelEqui *dds1data;
+	parallelEqui *dds1fqu;
+	genericPLL *pll1;
+	genericDDS *dds1;
+	QBitArray *pll1array;
+	QBitArray *dds1array;
+
 signals:
 	void startHotplugCallback(libusb_context *context);
 };

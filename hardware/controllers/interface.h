@@ -44,6 +44,8 @@ protected slots:
 	void setScanConfiguration(hardwareDevice::scanConfig configuration);
 public:
 	void hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices);
+	QHash<hardwareDevice::MSAdevice, hardwareDevice *> getCurrentHardwareDevices() const;
+
 signals:
 	void dataReady(int step, double magnitude, double phase);
 protected:

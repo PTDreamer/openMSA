@@ -39,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices;
 	devices.insert(hardwareDevice::PLL1, hardwareDevice::LMX2326);
 	devices.insert(hardwareDevice::DDS1, hardwareDevice::AD9850);
+	s->init(3);
 	s->hardwareInit(devices);
 	s->initScan(false, -0.075, 0.075, 0.15/400);
 }

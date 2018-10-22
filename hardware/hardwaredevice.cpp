@@ -33,9 +33,9 @@ hardwareDevice::hardwareDevice(QObject *parent):QObject(parent)
 {
 }
 
-QList<hardwareDevice::devicePin *> hardwareDevice::getDevicePins()
+const QHash<int, hardwareDevice::devicePin*>  hardwareDevice::getDevicePins()
 {
-	return devicePins.values();
+	return devicePins;
 }
 
 hardwareDevice::~hardwareDevice()
@@ -128,7 +128,6 @@ void hardwareDevice::registerToBuffer(quint64 *reg, int pin, quint32 step)
 		(*arr)[registerSize - 1 - x] = r & (quint64)1;
 		r = r >> 1;
 	}
-//	qDebug() << *arr;
 }
 
 genericPLL::genericPLL(QObject *parent):hardwareDevice(parent)

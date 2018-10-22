@@ -65,22 +65,21 @@ lmx2326::lmx2326(hardwareDevice::MSAdevice device, QObject *parent):genericPLL(p
 	fillField(L_TESTMODE, bits, &s.latches);
 	setFieldRegister(L_CC, (int)control_field::FUNCTION_LATCH);
 	setFieldRegister(L_FO_LD, (int)FoLD_field::R_DIVIDER_OUT);
-	qDebug() << convertToStr(&s.latches);
 
 	devicePin *pin = new devicePin;
 	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Data";
-	pin->type = hardwareDevice::INPUT;
+	pin->IOtype = hardwareDevice::INPUT;
 	devicePins.insert(PIN_DATA, pin);
 	pin = new devicePin;
 	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Load Enable";
-	pin->type = hardwareDevice::INPUT;
+	pin->IOtype = hardwareDevice::INPUT;
 	devicePins.insert(PIN_LE, pin);
 	pin = new devicePin;
 	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Clock";
-	pin->type = hardwareDevice::CLK;
+	pin->IOtype = hardwareDevice::CLK;
 	devicePins.insert(PIN_CLK, pin);
 }
 
@@ -136,7 +135,8 @@ void lmx2326::init()
 	setFieldRegister(L_TESTMODE, 0);
 	registerToBuffer(&s.latches, PIN_DATA, INIT_STEP);
 	addLEandCLK(INIT_STEP);
-	qDebug() << *devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP);
+	qDebug() << "lmx2326 initData" << convertToStr(&s.latches);
+	qDebug() << "lmx2326 initData" << *devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP);
 	qDebug() << *devicePins.value(PIN_LE)->dataArray.value(INIT_STEP);
 	qDebug() << *devicePins.value(PIN_CLK)->dataArray.value(INIT_STEP);
 }
