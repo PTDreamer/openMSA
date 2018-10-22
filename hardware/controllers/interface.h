@@ -3,9 +3,9 @@
  *
  * @file       main.cpp
  * @author     Jose Barros (AKA PT_Dreamer) josemanuelbarros@gmail.com 2018
- * @brief      deviceparser.h file
+ * @brief      interface.h file
  * @see        The GNU Public License (GPL) Version 3
- * @defgroup   deviceParser
+ * @defgroup   interface
  * @{
  *
  *****************************************************************************/
@@ -23,29 +23,36 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, see <http://www.gnu.org/licenses/>
  */
-#ifndef DEVICEPARSER_H
-#define DEVICEPARSER_H
+#ifndef INTERFACE_H
+#define INTERFACE_H
 
 #include <QObject>
-#include "hardwaredevice.h"
-#include <QHash>
+#include "../hardwaredevice.h"
 
-class deviceParser:public QObject
+class interface: public QObject
 {
 	Q_OBJECT
 public:
-	deviceParser(hardwareDevice::MSAdevice dev, hardwareDevice *parent);
-	double parsePLLRCounter(hardwareDevice::scanConfig config);
-	double parsePLLNCounter(hardwareDevice::scanConfig configuration, hardwareDevice::scanStep &step, int stepNumber);
-	quint32 parseDDSOutput(hardwareDevice::scanConfig configuration, int stepNumber);
-	static const QHash<hardwareDevice::MSAdevice, hardwareDevice *> getDeviceList();
-	hardwareDevice::HWdevice getDeviceType() {return hwdev;}
-	~deviceParser();
+	interface(QObject *parent = 0);
+protected slots:
+	virtual void commandNextStep() = 0;
+	virtual void commandPreviousStep() = 0;
+	virtual void initScan(bool inverted, double start, double end, double step);
+	virtual void autoScan() = 0;
+	virtual void pauseScan() = 0;
+	virtual void resumeScan() = 0;
+	void setScanConfiguration(hardwareDevice::scanConfig configuration);
+public:
+	void hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices);
+signals:
+	void dataReady(int step, double magnitude, double phase);
+protected:
+	hardwareDevice::scanStruct currentScan;
+	quint32 currentStep;
+	bool isInverted;
+	quint32 numberOfSteps;
 private:
-	static QHash<hardwareDevice::MSAdevice, hardwareDevice *> deviceList;
-	hardwareDevice::MSAdevice msadev;
-	hardwareDevice::HWdevice hwdev;
-	hardwareDevice *device;
+	QHash<hardwareDevice::MSAdevice, hardwareDevice *> currentHardwareDevices;
 };
 
-#endif // DEVICEPARSER_H
+#endif // INTERFACE_H

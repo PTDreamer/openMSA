@@ -1,7 +1,7 @@
 #include "lmx2326.h"
 #include <QDebug>
 
-lmx2326::lmx2326(deviceParser::MSAdevice device, QObject *parent):genericPLL(parent)
+lmx2326::lmx2326(hardwareDevice::MSAdevice device, QObject *parent):genericPLL(parent)
 {
 	registerSize = 21;
 	parser = new deviceParser(device, this);
@@ -89,13 +89,13 @@ hardwareDevice::clockType lmx2326::getClk_type() const
 	return hardwareDevice::CLOCK_RISING_EDGE;
 }
 
-void lmx2326::processNewScan(scanStruct scan)
+void lmx2326::processNewScan()
 {
 	//rcounter = appxdds1/PLL1phasefreq
 	//appxdds1 = rcounter * PLL1phasefreq
 	//
 	//fvco e [(32 x B) + A] x fosc/R(11)
-	double rcounter = parser->parsePLLRCounter(scan.configuration);//10.7/0.974 = 11
+	double rcounter = parser->parsePLLRCounter(currentScan.configuration);//10.7/0.974 = 11
 	setFieldRegister(R_DIVIDER, rcounter);
 	setFieldRegister(R_LD, 0);
 	setFieldRegister(R_TESTMODES, 0);
@@ -105,8 +105,8 @@ void lmx2326::processNewScan(scanStruct scan)
 	addLEandCLK(INIT_STEP);
 	qDebug() << *devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP);
 	qDebug() << *devicePins.value(PIN_LE)->dataArray.value(INIT_STEP);
-	foreach (int step, scan.steps.keys()) {
-		double ncounter = parser->parsePLLNCounter(scan.configuration, scan.steps[step],step);
+	foreach (int step, currentScan.steps.keys()) {
+		double ncounter = parser->parsePLLNCounter(currentScan.configuration, currentScan.steps[step],step);
 		double Bcounter = floor(ncounter/32);
 		double Acounter = round(ncounter-(Bcounter*32));
 		setFieldRegister(N_ACOUNTER_DIVIDER, Acounter);
@@ -136,9 +136,9 @@ void lmx2326::init()
 	setFieldRegister(L_TESTMODE, 0);
 	registerToBuffer(&s.latches, PIN_DATA, INIT_STEP);
 	addLEandCLK(INIT_STEP);
-	qDebug() << *devicePins.value(PIN_DATA)->dataArray.value(0);
-	qDebug() << *devicePins.value(PIN_LE)->dataArray.value(0);
-	qDebug() << *devicePins.value(PIN_CLK)->dataArray.value(0);
+	qDebug() << *devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP);
+	qDebug() << *devicePins.value(PIN_LE)->dataArray.value(INIT_STEP);
+	qDebug() << *devicePins.value(PIN_CLK)->dataArray.value(INIT_STEP);
 }
 
 void lmx2326::reinit()

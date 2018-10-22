@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include "hardware/lmx2326.h"
+#include "hardware/controllers/slimusb.h"
+
 namespace Ui {
 class MainWindow;
 }
@@ -20,7 +22,6 @@ private slots:
 
 private:
 	Ui::MainWindow *ui;
-	lmx2326 lmx;
 };
 
 #endif // MAINWINDOW_H

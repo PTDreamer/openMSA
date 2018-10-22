@@ -26,6 +26,9 @@
 #include "hardwaredevice.h"
 #include "deviceparser.h"
 
+hardwareDevice::scanStruct hardwareDevice::currentScan;
+void hardwareDevice::setNewScan(scanStruct scan) {hardwareDevice::currentScan = scan;}
+
 hardwareDevice::hardwareDevice(QObject *parent):QObject(parent)
 {
 }
@@ -41,6 +44,11 @@ hardwareDevice::~hardwareDevice()
 		qDeleteAll(pin->dataArray.values());
 	}
 	qDeleteAll(devicePins);
+}
+
+hardwareDevice::HWdevice hardwareDevice::getHardwareType()
+{
+	return parser->getDeviceType();
 }
 
 bool hardwareDevice::setFieldRegister(int field, int value)

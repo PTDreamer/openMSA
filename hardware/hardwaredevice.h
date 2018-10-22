@@ -38,6 +38,8 @@ class hardwareDevice:public QObject
 {
 	Q_OBJECT
 public:
+	typedef enum {LMX2326, AD9850} HWdevice;
+	typedef enum {PLL1, DDS1} MSAdevice;
 	typedef struct {
 		double frequency;
 		double LO1;
@@ -64,7 +66,7 @@ public:
 		pinType type;
 		QHash<quint32, QBitArray *> dataArray;//dataarray containing the serialized bit values for each scan step
 	} devicePin;
-	virtual void processNewScan(scanStruct scan)=0;
+	virtual void processNewScan()=0;
 	virtual void init()=0;
 	virtual void reinit()=0;
 	// gets the type of CLK this device needs, dedicated or system wide
@@ -72,6 +74,10 @@ public:
 	// gets the pins list of the device, containing the name (string), type (input, output or both) and dataarray
 	virtual QList<devicePin*> getDevicePins();
 	~hardwareDevice();
+	static scanStruct currentScan;
+	QHash<int, devicePin*> devicePins;
+	HWdevice getHardwareType();
+	static void setNewScan(scanStruct scan);
 protected:
 	typedef struct {
 		quint64 mask;
@@ -79,7 +85,6 @@ protected:
 		quint8 bits;
 		quint64 *reg;
 	} field_struct;
-	QHash<int, devicePin*> devicePins;
 	deviceParser *parser;
 	// contains a structure describing each field, where it is, how bit it is, etc...
 	QHash<int, field_struct> fieldlist;

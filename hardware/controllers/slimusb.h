@@ -27,11 +27,67 @@
 #define SLIMUSB_H
 
 #include <QObject>
+#include <iostream>
+#include <libusb-1.0/libusb.h>
+#include <QThread>
+#include <QVector>
+#include "interface.h"
 
-class slimusb
+using namespace std;
+
+class hotplugWorker : public QObject
 {
+	Q_OBJECT
+
+public slots:
+	void doWork(libusb_context *context);
+	void quit() {run = false;}
+private:
+	bool run;
+signals:
+	void connected();
+	void disconnected();
+};
+
+class slimusb : public interface
+{
+	Q_OBJECT
 public:
-	slimusb();
+	typedef struct {
+		QString name;
+		QString serial;
+		int deviceNumber;
+	} usbDevice;
+	slimusb(QObject *parent);
+	bool init(int debugLevel);
+	~slimusb();
+	bool openDevice(int deviceNumber);
+	bool isHotPlugCapable();
+	QList<usbDevice> getDevices();
+	bool getAutoConnect() const;
+	void setAutoConnect(bool value);
+	bool getIsConnected() const;
+	void initScan(bool inverted, double start, double end, double step);
+protected slots:
+	void commandNextStep();
+	void commandPreviousStep();
+	void autoScan();
+	void pauseScan();
+	void resumeScan();
+
+private:
+	libusb_device **devs; //pointer to pointer of device, used to retrieve a list of devices
+	libusb_device_handle *dev_handle; //a device handle
+	libusb_context *ctx = NULL; //a libusb session
+	void printdev(libusb_device *dev);
+	int enableCallBack(bool enable);
+	static int LIBUSB_CALL hotplug_callback(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event event, void *user_data);
+	QThread worker;
+	hotplugWorker *w = NULL;
+	static libusb_device_handle *deviceHandler;
+	bool autoConnect;
+signals:
+	void startHotplugCallback(libusb_context *context);
 };
 
 #endif // SLIMUSB_H

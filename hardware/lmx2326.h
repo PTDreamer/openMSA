@@ -17,14 +17,15 @@ class lmx2326: public genericPLL
 {
 	Q_OBJECT
 public:
-	lmx2326(deviceParser::MSAdevice device, QObject *parent);
+	lmx2326(hardwareDevice::MSAdevice device, QObject *parent);
 
 	clockType getClk_type() const;
-	void processNewScan(scanStruct scan);
+	void processNewScan();
 	void init();
 	void reinit();
 	~lmx2326();
 	int getRCounter();
+	typedef enum {PIN_CLK, PIN_DATA, PIN_LE} pins;
 protected:
 private:
 	void loadRcounterCC(int value);
@@ -40,7 +41,6 @@ private:
 	enum class phase_detector {NON_INVERTED=0, INVERTED=1};
 	enum class cp_gain {LOW = 0, HIGH};//250uA, 1ma
 	enum class cp_tri_state {NORMAL, TRI_STATE};
-	typedef enum {PIN_CLK, PIN_DATA, PIN_LE} pins;
 	// returns VCO frequency based on the current register values
 	double getVcoFrequency(double external_clock_frequency);
 	bool addLEandCLK(quint32 step);

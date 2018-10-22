@@ -26,7 +26,7 @@
 #include "ad9850.h"
 #include <QDebug>
 
-ad9850::ad9850(deviceParser::MSAdevice device, QObject *parent) : genericDDS(parent)
+ad9850::ad9850(hardwareDevice::MSAdevice device, QObject *parent) : genericDDS(parent)
 {
 	registerSize = 40;
 	parser = new deviceParser(device, this);
@@ -64,10 +64,10 @@ ad9850::ad9850(deviceParser::MSAdevice device, QObject *parent) : genericDDS(par
 	devicePins.insert(PIN_WCLK, pin);
 }
 
-void ad9850::processNewScan(hardwareDevice::scanStruct scan)
+void ad9850::processNewScan()
 {
-	foreach (int step, scan.steps.keys()) {
-		quint32 base = parser->parseDDSOutput(scan.configuration, step);
+	foreach (int step, currentScan.steps.keys()) {
+		quint32 base = parser->parseDDSOutput(currentScan.configuration, step);
 		setFieldRegister(FIELD_FREQUENCY, base);
 		registerToBuffer(&deviceRegister, PIN_DATA, step);
 	}
