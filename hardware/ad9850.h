@@ -40,11 +40,11 @@ class ad9850 : public genericDDS
 public:
 	explicit ad9850(hardwareDevice::MSAdevice device, QObject *parent = 0);
 	void processNewScan();
-	void init();
+	bool init();
 	void reinit();
 	// gets the type of CLK this device needs, dedicated or system wide
 	clockType getClk_type() const;
-	typedef enum {PIN_WCLK, PIN_FQUD, PIN_DATA} pins;
+	typedef enum {PIN_DATA, PIN_FQUD, PIN_WCLK, PIN_VIRTUAL_CLOCK} pins;
 private:
 	typedef enum {FIELD_FREQUENCY, FIELD_CONTROL, FIELD_POWER, FIELD_PHASE} fields_type;
 	bool checkSettings();

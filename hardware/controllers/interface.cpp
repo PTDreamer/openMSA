@@ -31,12 +31,12 @@
 
 interface::interface(QObject *parent):QObject(parent)
 {
-	currentScan.configuration.LO2 = 1024;
-	currentScan.configuration.appxdds1 = 10.7;
-	currentScan.configuration.baseFrequency = 0;
-	currentScan.configuration.PLL1phasefreq = 0.974;
-	currentScan.configuration.finalFrequency = 10.7;
-	currentScan.configuration.masterOscilatorFrequency = 64;
+	hardwareDevice::currentScan.configuration.LO2 = 1024;
+	hardwareDevice::currentScan.configuration.appxdds1 = 10.7;
+	hardwareDevice::currentScan.configuration.baseFrequency = 0;
+	hardwareDevice::currentScan.configuration.PLL1phasefreq = 0.974;
+	hardwareDevice::currentScan.configuration.finalFrequency = 10.7;
+	hardwareDevice::currentScan.configuration.masterOscilatorFrequency = 64;
 }
 
 void interface::initScan(bool inverted, double start, double end, double step)
@@ -45,7 +45,7 @@ void interface::initScan(bool inverted, double start, double end, double step)
 	for(int x = 0; x < steps; ++x) {
 		hardwareDevice::scanStep s;
 		s.frequency = start + (x * step);
-		currentScan.steps.insert(x, s);
+		hardwareDevice::currentScan.steps.insert(x, s);
 	}
 	isInverted = inverted;
 	hardwareDevice::scanStruct scan = hardwareDevice::currentScan;
@@ -58,14 +58,13 @@ void interface::initScan(bool inverted, double start, double end, double step)
 
 void interface::setScanConfiguration(hardwareDevice::scanConfig configuration)
 {
-	currentScan.configuration = configuration;
+	hardwareDevice::currentScan.configuration = configuration;
 }
 
 void interface::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices)
 {
 	qDeleteAll(currentHardwareDevices);
 	currentHardwareDevices.clear();
-	lmx2326 *x;
 	foreach (hardwareDevice::MSAdevice dev, devices.keys()) {
 		switch (devices.value(dev)) {
 		case hardwareDevice::LMX2326:

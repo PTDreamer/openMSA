@@ -27,47 +27,25 @@
 #define SLIMUSB_H
 
 #include <QObject>
-#include <iostream>
-#include <libusb-1.0/libusb.h>
 #include <QThread>
 #include <QVector>
 #include "interface.h"
 #include <QHash>
+#include <QVector>
 #include "../lmx2326.h"
 #include "../ad9850.h"
-
-using namespace std;
-
-class hotplugWorker : public QObject
-{
-	Q_OBJECT
-
-public slots:
-	void doWork(libusb_context *context);
-	void quit() {run = false;}
-private:
-	bool run;
-signals:
-	void connected();
-	void disconnected();
-};
+#include "usbdevice.h"
 
 class slimusb : public interface
 {
 	Q_OBJECT
 public:
-	typedef struct {
-		QString name;
-		QString serial;
-		int deviceNumber;
-	} usbDevice;
 	slimusb(QObject *parent);
 	bool init(int debugLevel);
 	~slimusb();
+	QList<usbdevice::usbDevice_t> getDevices();
 	bool openDevice(int deviceNumber);
 	void closeDevice();
-	bool isHotPlugCapable();
-	QList<usbDevice> getDevices();
 	bool getAutoConnect() const;
 	void setAutoConnect(bool value);
 	bool getIsConnected() const;
@@ -80,31 +58,17 @@ protected slots:
 	void pauseScan();
 	void resumeScan();
 signals:
-	void disconnected();
-	void connected();
+
 private:
-	void signalConnected();
-	void signalDisconnected();
+	usbdevice usb;
 	typedef struct {
 		uint8_t latch;
 		uint8_t mask;
 		uint8_t pin;
 	} parallelEqui;
 	QHash<hardwareDevice::MSAdevice, QHash<hardwareDevice::HWdevice, parallelEqui>> pinMapping;
-	libusb_device **devs; //pointer to pointer of device, used to retrieve a list of devices
-	libusb_device_handle *dev_handle; //a device handle
-	libusb_context *ctx = NULL; //a libusb session
-	void printdev(libusb_device *dev);
-	int enableCallBack(bool enable);
-	static int LIBUSB_CALL hotplug_callback(libusb_context *ctx, libusb_device *dev, libusb_hotplug_event event, void *user_data);
-	QThread worker;
-	hotplugWorker *w = NULL;
-	static libusb_device_handle *deviceHandler;
 	bool autoConnect;
-	uint8_t data1;
-	uint8_t data2;
-	uint8_t data3;
-	uint8_t data4;
+	QVector<uint8_t> currentLatchValue;
 	parallelEqui *pll1data;
 	parallelEqui *pll1le;
 	parallelEqui *dds1data;
@@ -113,9 +77,15 @@ private:
 	genericDDS *dds1;
 	QBitArray *pll1array;
 	QBitArray *dds1array;
-
-signals:
-	void startHotplugCallback(libusb_context *context);
+	QHash<uint8_t, uint8_t> latchToUSBNumber;
+	void commandStep(int step);
+	void commandInitStep(hardwareDevice *dev, int step);
+	void sendUSB(QByteArray data, uint8_t latch, bool autoClock);
+	QString byteToString(uint8_t byte);
+	QString constructString(uint8_t latch1, uint8_t latch2, uint8_t latch3, uint8_t latch4, QString clock);
+	void usbToString(QByteArray array, bool print, int temp);
+	QHash<quint32, QByteArray *> usbData;
+	void printUSBData(int step);
 };
 
 #endif // SLIMUSB_H

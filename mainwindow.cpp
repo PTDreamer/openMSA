@@ -40,6 +40,14 @@ MainWindow::MainWindow(QWidget *parent) :
 	devices.insert(hardwareDevice::PLL1, hardwareDevice::LMX2326);
 	devices.insert(hardwareDevice::DDS1, hardwareDevice::AD9850);
 	s->init(3);
+	hardwareDevice::scanConfig config;
+	config.LO2 = 1024;
+	config.appxdds1 = 10.7;
+	config.baseFrequency = 0;
+	config.PLL1phasefreq = 0.974;
+	config.finalFrequency = 10.7;
+	config.masterOscilatorFrequency = 64;
+	s->setScanConfiguration(config);
 	s->hardwareInit(devices);
 	s->initScan(false, -0.075, 0.075, 0.15/400);
 }

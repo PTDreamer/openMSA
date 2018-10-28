@@ -29,232 +29,38 @@
 #include "../lmx2326.h"
 #include "../ad9850.h"
 
-#define G8_VID 0x0547
-#define G8_PID 0x1015
-
-libusb_device_handle *slimusb::deviceHandler = NULL;
-
-slimusb::slimusb(QObject *parent): interface(parent), devs(NULL), autoConnect(true), data1(0), data2(0)
-  , data3(0), data4(0)
+slimusb::slimusb(QObject *parent): interface(parent), usb(parent),autoConnect(true)
 {
-
+	currentLatchValue.resize(5);
+	latchToUSBNumber.insert(1,1);
+	latchToUSBNumber.insert(2,3);
+	latchToUSBNumber.insert(3,0);
+	latchToUSBNumber.insert(4,2);
+	latchToUSBNumber.insert(7,7);
 }
 
 bool slimusb::init(int debugLevel)
 {
-	int r; //for return values
-	r = libusb_init(&ctx); //initialize the library for the session we just declared
-	if(r < 0) {
-		cout<<"Init Error "<<r<<endl; //there was an error
+	if(!usb.init((debugLevel)))
 		return false;
-	}
-	libusb_set_debug(ctx, debugLevel); //set verbosity level to 3, as suggested in the documentation
-
 	if(autoConnect)
-		enableCallBack(true);
+		usb.enableCallBack(true);
 	return true;
 }
 
 slimusb::~slimusb()
 {
-	if(deviceHandler)
-		libusb_close(deviceHandler);
-	libusb_free_device_list(devs, 1); //free the list, unref the devices in it
-	libusb_exit(ctx);
-	enableCallBack(false);
-	worker.wait(10000);
+	qDeleteAll(usbData.values());
 }
 
-bool slimusb::openDevice(int deviceNumber)
+void slimusb::commandStep(int step)
 {
-	libusb_open(devs[deviceNumber], &deviceHandler);
-	if(deviceHandler) {
-		qDebug() << "USB device connected";
-		emit connected();
-		return true;
-	}
-	else
-		return false;
-}
-
-void slimusb::closeDevice()
-{
-	libusb_close(deviceHandler);
-	emit disconnected();
-}
-
-bool slimusb::isHotPlugCapable()
-{
-	if (!libusb_has_capability (LIBUSB_CAP_HAS_HOTPLUG)) {
-		qDebug()<< ("Hotplug capabilites are not supported on this platform\n");
-		libusb_exit (NULL);
-		return false;
-	}
-	else {
-		qDebug()<< ("Hotplug capabilites are SUPPORTED\n");
-		return true;
-	}
-}
-
-QList<slimusb::usbDevice> slimusb::getDevices()
-{
-	if(devs)
-		libusb_free_device_list(devs, 1); //free the list, unref the devices in it
-	QList<usbDevice> ret;
-	ssize_t cnt; //holding number of devices in list
-	cnt = libusb_get_device_list(ctx, &devs); //get the list of devices
-	if(cnt < 0) {
-		cout<<"Get Device Error"<<endl; //there was an error
-		return ret;
-	}
-	for(int i = 0; i < cnt; i++) {
-		libusb_device_descriptor desc;
-		int r = libusb_get_device_descriptor(devs[i], &desc);
-		if((r >=0)  && (desc.idVendor == G8_VID) && (desc.idProduct == G8_PID)) {
-			//printdev(devs[i]); //print specs of this device
-			libusb_device_handle *m_handle;
-			libusb_open(devs[i], &m_handle);// libusb_open_device_with_vid_pid(ctx, 0x0547, 0x1015); //these are vendorID and productID I found for my usb device
-			if(m_handle == NULL) {
-				cout<<"Cannot open device"<<endl;
-				continue;
-			}
-			else {
-				libusb_device_descriptor desc;
-				int r = libusb_get_device_descriptor(devs[i], &desc);
-				if (r < 0) {
-					libusb_close(m_handle);
-					continue;
-				}
-				unsigned char productStr[256];
-				unsigned char serialStr[256];
-
-				libusb_get_string_descriptor_ascii(m_handle, desc.iProduct, productStr, sizeof(productStr));
-				usbDevice d;
-				d.name = QString::fromLatin1((char*)productStr);
-				libusb_get_string_descriptor_ascii(m_handle, desc.iSerialNumber, serialStr, sizeof(serialStr));
-				d.serial = QString::fromLatin1((char*)serialStr);
-				d.deviceNumber = i;
-				ret.append(d);
-				libusb_close(m_handle);
-			}
-		}
-	}
-	return ret;
-}
-
-void slimusb::printdev(libusb_device *dev) {
-	libusb_device_descriptor desc;
-
-	int r = libusb_get_device_descriptor(dev, &desc);
-	if (r < 0) {
-		cout<<"failed to get device descriptor"<<endl;
-		return;
-	}
-	cout<<"Number of possible configurations: "<<(int)desc.bNumConfigurations<<"  ";
-	cout<<"Device Class: "<<(int)desc.bDeviceClass<<"  ";
-	cout<<"VendorID: "<<desc.idVendor<<"  ";
-	cout<<"ProductID: "<<desc.idProduct<<endl;
-	libusb_config_descriptor *config;
-	libusb_get_config_descriptor(dev, 0, &config);
-	cout<<"Interfaces: "<<(int)config->bNumInterfaces<<" ||| ";
-	const libusb_interface *inter;
-	const libusb_interface_descriptor *interdesc;
-	const libusb_endpoint_descriptor *epdesc;
-	for(int i=0; i<(int)config->bNumInterfaces; i++) {
-		inter = &config->interface[i];
-		cout<<"Number of alternate settings: "<<inter->num_altsetting<<" | ";
-		for(int j=0; j<inter->num_altsetting; j++) {
-			interdesc = &inter->altsetting[j];
-			cout<<"Interface Number: "<<(int)interdesc->bInterfaceNumber<<" | ";
-			cout<<"Number of endpoints: "<<(int)interdesc->bNumEndpoints<<" | ";
-			for(int k=0; k<(int)interdesc->bNumEndpoints; k++) {
-				epdesc = &interdesc->endpoint[k];
-				cout<<"Descriptor Type: "<<(int)epdesc->bDescriptorType<<" | ";
-				cout<<"EP Address: "<<(int)epdesc->bEndpointAddress<<" | ";
-			}
-		}
-	}
-	cout<<endl<<endl<<endl;
-	libusb_free_config_descriptor(config);
-}
-
-int slimusb::enableCallBack(bool enable)
-{
-	static libusb_hotplug_callback_handle handle;
-	static bool callbackEnabled = false;
-	static bool once = true;
-	if(once) {
-		if(!isHotPlugCapable())
-			return false;
-	}
-	once = false;
-	if(enable && !callbackEnabled) {
-		int rc;
-		libusb_init(NULL);
-		rc = libusb_hotplug_register_callback(NULL, (libusb_hotplug_event)(LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED |
-																		   LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT), (libusb_hotplug_flag)LIBUSB_HOTPLUG_ENUMERATE, G8_VID, G8_PID,
-											  LIBUSB_HOTPLUG_MATCH_ANY, (libusb_hotplug_callback_fn)slimusb::hotplug_callback, this,
-											  &handle);
-		if (LIBUSB_SUCCESS != rc) {
-			printf("Error creating a hotplug callback\n");
-			libusb_exit(NULL);
-			return false;
-		}
-		w = new hotplugWorker;
-		w->moveToThread(&worker);
-		worker.start();
-		worker.setPriority(QThread::LowestPriority);
-		connect(this, SIGNAL(startHotplugCallback(libusb_context*)), w, SLOT(doWork(libusb_context*)));
-		emit startHotplugCallback(ctx);
-		callbackEnabled = true;
-		return true;
-	}
-	else if(callbackEnabled){
-		if(w)
-			w->quit();
-		worker.quit();
-		libusb_hotplug_deregister_callback(NULL, handle);
-		libusb_exit(NULL);
-		callbackEnabled = false;
-		return true;
-	}
-	return true;
-}
-
-int LIBUSB_CALL slimusb::hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev, libusb_hotplug_event event, void *user_data) {
-	Q_UNUSED(ctx)
-	Q_UNUSED(user_data)
-	slimusb *th = static_cast<slimusb*>(user_data);
-	struct libusb_device_descriptor desc;
-	int rc;
-	(void)libusb_get_device_descriptor(dev, &desc);
-	if (LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED == event) {
-		rc = libusb_open(dev, &deviceHandler);
-		if (LIBUSB_SUCCESS != rc) {
-			qDebug()<<("Could not open USB device\n");
-		}
-		else {
-			if(th)
-				th->signalConnected();
-			qDebug() << "Device connected";
-		}
-	} else if (LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT == event) {
-		if (deviceHandler) {
-			if(th)
-				th->signalDisconnected();
-			qDebug() << "Device disconnected";
-			libusb_close(deviceHandler);
-			deviceHandler = NULL;
-		}
-	} else {
-		qDebug()<< QString("Unhandled event %d\n").arg(event);
-	}
-	return 0;
+	sendUSB(*usbData.value(step), 7, false);
 }
 
 bool slimusb::getIsConnected() const
 {
-	return (deviceHandler != NULL);
+	return (usbdevice::deviceHandler != NULL);
 }
 
 void slimusb::commandNextStep()
@@ -269,11 +75,41 @@ void slimusb::commandPreviousStep()
 
 void slimusb::initScan(bool inverted, double start, double end, double step)
 {
+	QList<hardwareDevice::devicePin*> dataPins;
+	int maxSize = 0;
 	interface::initScan(inverted, start, end, step);
-	//	hardwareDevice::setNewScan(currentScan);
-	//	pll1dev->processNewScan();
-	//	dds1dev->processNewScan();
+	pll1->processNewScan();
+	dds1->processNewScan();
+	qDeleteAll(usbData.values());
+	usbData.clear();
+	foreach (hardwareDevice *dev, getCurrentHardwareDevices().values()) {
+		foreach (hardwareDevice::devicePin *pin, dev->getDevicePins().values()) {
+			if(pin->IOtype == hardwareDevice::MAIN_DATA) {
+				dataPins.append(pin);
+				if(pin->data.contains(0) && pin->data.value(0).dataArray->size() > maxSize)
+					maxSize = pin->data.value(0).dataArray->size();
+			}
+		}
+	}
+	int delta;
+	for(int step = 0; step < hardwareDevice::currentScan.steps.size(); ++step) {
+		QByteArray *arr = new QByteArray;
+		usbData.insert(step, arr);
+		for(int b = 0; b < maxSize; ++b) {
+			uint8_t byte = currentLatchValue.at(1);
+			foreach (hardwareDevice::devicePin *pin, dataPins) {
+				if(pin->data.contains(step)) {
+					delta = maxSize - pin->data.value(step).dataArray->size() + pin->data.value(step).dataMask->count(0);
+				}
+				if(b >= delta) {
+					byte = (byte & ((parallelEqui*)(pin->hwconfig))->mask) | pin->data.value(step).dataArray->at(b - delta) << ((parallelEqui*)(pin->hwconfig))->pin;
 
+				}
+			}
+			arr->append(byte);
+		}
+	}
+	commandStep(0);
 }
 
 void slimusb::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices)
@@ -312,6 +148,9 @@ void slimusb::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWde
 				pin->hwconfig = pll1le;
 				break;
 			default:
+				pin = pll1pins.value(type);
+				pin->hwconfig = NULL;
+				break;
 				break;
 			}
 		}
@@ -348,6 +187,8 @@ void slimusb::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWde
 				pin->hwconfig = dds1fqu;
 				break;
 			default:
+				pin = dds1pins.value(type);
+				pin->hwconfig = NULL;
 				break;
 			}
 		}
@@ -355,38 +196,186 @@ void slimusb::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWde
 
 	switch (pll1->getHardwareType()) {
 	case hardwareDevice::LMX2326:
-		pll1array = deviceParser::getDeviceList().value(hardwareDevice::PLL1)->devicePins.value(lmx2326::PIN_DATA)->dataArray.value(INIT_STEP);
+		pll1array = deviceParser::getDeviceList().value(hardwareDevice::PLL1)->devicePins.value(lmx2326::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
 		break;
 	default:
 		break;
 	}
 	switch (dds1->getHardwareType()) {
 	case hardwareDevice::AD9850:
-		dds1array = deviceParser::getDeviceList().value(hardwareDevice::DDS1)->devicePins.value(ad9850::PIN_DATA)->dataArray.value(INIT_STEP);
+		dds1array = deviceParser::getDeviceList().value(hardwareDevice::DDS1)->devicePins.value(ad9850::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
 		break;
 	default:
 		break;
 	}
-
-	if(true || deviceHandler)
-	{
-		QByteArray array;
-		array.append(0xA0 + pll1data->latch);
-		array.append(pll1array->size());
-		for(int x = 0; x < pll1array->size(); ++x) {
-			uint8_t val = pll1array->at(x) << pll1data->pin;
-			data1 = (data1 & pll1data->mask) | val;
-			array.append(data1);
-		}
-		int actual;
-		int r = libusb_bulk_transfer(deviceHandler, (2 | LIBUSB_ENDPOINT_OUT), (unsigned char*)array.data(), 5, &actual, 0);
-		if(r != 0)
-		{
-			deviceHandler = NULL;
-			emit disconnected();
-		}
-		qDebug() << array;
+	qDebug() << "PLL";
+	foreach (int step, pll1->getInitIndexes()) {
+		commandInitStep(pll1, step);
+		usbToString(QByteArray(), true, 0);
 	}
+	qDebug() << "DDS";
+	foreach (int step, dds1->getInitIndexes()) {
+		commandInitStep(dds1, step);
+		usbToString(QByteArray(), true, 0);
+	}
+}
+
+void slimusb::commandInitStep(hardwareDevice *dev, int step) {
+
+	int maxSize = 0;
+	foreach (hardwareDevice::devicePin *pin, dev->getDevicePins()) {
+		if(pin->data.contains(step)) {
+			if(pin->data.value(step).dataArray->size() > maxSize)
+				maxSize = pin->data.value(step).dataArray->size();
+			if(pin->data.value(step).dataMask->size() > maxSize)
+				maxSize = pin->data.value(step).dataMask->size();
+		}
+	};
+
+	int previousLatch = -1;
+	int previousVirtualCLK = -1;
+	int currentLatch = -1;
+	int currentVirtualCLK = -1;
+	QByteArray sendArray;
+	for(int x = 0; x < maxSize; ++x) {
+		currentLatch = -1;
+		currentVirtualCLK = -1;
+		foreach (hardwareDevice::devicePin *pin, dev->getDevicePins()) {
+			if(pin->data.contains(step) && pin->data.value(step).dataMask && (x < pin->data.value(step).dataMask->size()) && pin->data.value(step).dataMask->at(x)) {
+				if(currentLatch == -1 && pin->hwconfig) {
+					currentLatch = ((parallelEqui*)(pin->hwconfig))->latch;
+					if(previousLatch == -1)
+						previousLatch = currentLatch;
+				} else if(pin->hwconfig && (currentLatch != ((parallelEqui*)(pin->hwconfig))->latch)){
+					Q_ASSERT(false);
+				}
+			}
+		}
+		Q_ASSERT(currentLatch != -1);
+		foreach (hardwareDevice::devicePin *pin, dev->getDevicePins()) {
+			if(pin->data.contains(step) && pin->data.value(step).dataMask && (x < pin->data.value(step).dataMask->size()) && pin->data.value(step).dataMask->at(x)) {
+				if(pin->IOtype == hardwareDevice::VIRTUAL_CLK) {
+					currentVirtualCLK = pin->data.value(step).dataArray->at(x);
+					if(previousVirtualCLK == -1)
+						previousVirtualCLK = currentVirtualCLK;
+					//qDebug() << "setting virtual clock to:" << currentVirtualCLK << "bit:" << x;
+				}
+			}
+		}
+		if(previousVirtualCLK == -1)
+			previousVirtualCLK = 0;
+		if((currentLatch != previousLatch) || ((currentVirtualCLK != previousVirtualCLK) && currentVirtualCLK !=-1)) {
+			qDebug() << "currentLatch"<<currentLatch<< "previousLatch"<<previousLatch<<"currentVirtualCLK"<<currentVirtualCLK<<"previousVirtualCLK"<<previousVirtualCLK;
+			if(sendArray.size() > 0) {
+				sendUSB(sendArray, previousLatch, previousVirtualCLK == 1);
+				sendArray.clear();
+				previousLatch = currentLatch;
+				previousVirtualCLK = currentVirtualCLK;
+			}
+		}
+
+		uint8_t currentByte = 0;
+		foreach (hardwareDevice::devicePin *pin, dev->getDevicePins()) {
+			if(pin->data.contains(step) && pin->data.value(step).dataMask && (x < pin->data.value(step).dataMask->size()) && pin->data.value(step).dataMask->at(x)) {
+				if(pin->hwconfig) {
+					currentByte	= ((currentByte & ((parallelEqui*)(pin->hwconfig))->mask)) | (pin->data.value(step).dataArray->at(x) << ((parallelEqui*)(pin->hwconfig))->pin);
+				}
+			}
+		}
+		sendArray.append(currentByte);
+	}
+	if(sendArray.size() > 0) {
+		sendUSB(sendArray, currentLatch, currentVirtualCLK == 1);
+	}
+}
+
+void slimusb::sendUSB(QByteArray data, uint8_t latch, bool autoClock) {
+	static int temp = 0;
+	qDebug() << temp << "send latch:" << latch << "autoclk:"<< autoClock << data;
+	static int z = 0;
+	if(z == 2) {
+		//while(true);
+	}
+	++z;
+	int s =data.size();
+	data.insert(0, (int)autoClock);
+	data.insert(0, s);
+	data.insert(0, 0xA0 + latchToUSBNumber.value(latch));
+	if(usb.isConnected()) {
+		usb.sendArray(data);
+	}
+	else
+		usbToString(data, false, temp);
+	++temp;
+}
+void slimusb::usbToString(QByteArray array, bool print, int temp) {
+	QString str;
+	unsigned char *data = reinterpret_cast<unsigned char*>(array.data());
+	for(int i = 0; i < array.length(); ++i) {
+		QString d = QString::number(data[i], 16);
+		if(d.length() == 1)
+			d.insert(0,"0");
+		str.append(d);
+	}
+	qDebug() << "SENT";
+	qDebug() << str;
+	//	latchToUSBNumber.insert(1,1);
+//	latchToUSBNumber.insert(2,3);
+//	latchToUSBNumber.insert(3,0);
+//	latchToUSBNumber.insert(4,2);
+	static uint8_t latch1 = 0;
+	static uint8_t latch2 = 0;
+	static uint8_t latch3 = 0;
+	static uint8_t latch4 = 0;
+	QString autoClk;
+	uint8_t *latch;
+	static QStringList list;
+	if(array.length() > 0) {
+	if((array.at(0) & 0xA0) == 0xA0) {
+		if((array.at(0) & 0x0F) == 0x00) {
+			latch = &latch3;
+		}
+		else if((array.at(0) & 0x0F) == 0x01) {
+			latch = &latch1;
+		}
+		else if((array.at(0) & 0x0F) == 0x02) {
+			latch = &latch4;
+		}
+		else if((array.at(0) & 0x0F) == 0x03) {
+			latch = &latch2;
+		}
+	}
+	if((array.at(2)) == 0x01) {
+		autoClk = "A";
+	}
+	else
+		autoClk = "X";
+	for(int x = 3; x < array.length(); ++ x) {
+		*latch = array.at(x);
+		list.append(QString::number(temp) + " " + constructString(latch1, latch2, latch3, latch4, autoClk));
+	}
+	}
+	if(print) {
+		list.append("");
+		foreach (QString s, list) {
+			qDebug() << s;
+		}
+		list.clear();
+	}
+}
+QString slimusb::constructString(uint8_t latch1, uint8_t latch2, uint8_t latch3, uint8_t latch4, QString clock) {
+	QString str;
+	str = QString("%0 %1 %2 %3 %4").arg(clock).arg(byteToString(latch1)).arg(byteToString(latch2)).arg(byteToString(latch3)).arg(byteToString(latch4));
+	return str;
+}
+
+QString slimusb::byteToString(uint8_t byte) {
+	QString str;
+	for(int x = 0; x < 8; ++x) {
+		uint8_t v = ((byte) >> x) & 1;
+		str.insert(0, QString::number(v));
+	}
+	return str;
 }
 
 void slimusb::autoScan()
@@ -404,16 +393,6 @@ void slimusb::resumeScan()
 
 }
 
-void slimusb::signalConnected()
-{
-	emit connected();
-}
-
-void slimusb::signalDisconnected()
-{
-	emit disconnected();
-}
-
 bool slimusb::getAutoConnect() const
 {
 	return autoConnect;
@@ -422,15 +401,32 @@ bool slimusb::getAutoConnect() const
 void slimusb::setAutoConnect(bool value)
 {
 	autoConnect = value;
-	enableCallBack(autoConnect);
+	usb.enableCallBack(autoConnect);
 }
 
-void hotplugWorker::doWork(libusb_context *context)
-{
-	run = true;
-	while (run) {
-		QThread::sleep(1);
-		libusb_handle_events_completed(context, NULL);
+void slimusb::printUSBData(int step) {
+	QString str;
+	unsigned char *data = reinterpret_cast<unsigned char*>(usbData.value(step)->data());
+	for(int i = 0; i < usbData.value(step)->length(); ++i) {
+		QString d = QString::number(data[i], 16);
+		if(d.length() == 1)
+			d.insert(0,"0");
+		str.append(d);
 	}
-	qDebug()<<("quit hotplugWorker");
+	qDebug() << str;
+}
+
+QList<usbdevice::usbDevice_t> slimusb::getDevices()
+{
+	return usb.getDevices();
+}
+
+bool slimusb::openDevice(int deviceNumber)
+{
+	return usb.openDevice(deviceNumber);
+}
+
+void slimusb::closeDevice()
+{
+	usb.closeDevice();
 }

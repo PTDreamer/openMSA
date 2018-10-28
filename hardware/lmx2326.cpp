@@ -67,20 +67,21 @@ lmx2326::lmx2326(hardwareDevice::MSAdevice device, QObject *parent):genericPLL(p
 	setFieldRegister(L_FO_LD, (int)FoLD_field::R_DIVIDER_OUT);
 
 	devicePin *pin = new devicePin;
-	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Data";
-	pin->IOtype = hardwareDevice::INPUT;
+	pin->IOtype = hardwareDevice::MAIN_DATA;
 	devicePins.insert(PIN_DATA, pin);
 	pin = new devicePin;
-	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Load Enable";
-	pin->IOtype = hardwareDevice::INPUT;
+	pin->IOtype = hardwareDevice::GEN_INPUT;
 	devicePins.insert(PIN_LE, pin);
 	pin = new devicePin;
-	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Clock";
 	pin->IOtype = hardwareDevice::CLK;
 	devicePins.insert(PIN_CLK, pin);
+	pin = new devicePin;
+	pin->name = "";
+	pin->IOtype = hardwareDevice::VIRTUAL_CLK;
+	devicePins.insert(PIN_VIRTUAL_CLOCK, pin);
 }
 
 hardwareDevice::clockType lmx2326::getClk_type() const
@@ -94,16 +95,8 @@ void lmx2326::processNewScan()
 	//appxdds1 = rcounter * PLL1phasefreq
 	//
 	//fvco e [(32 x B) + A] x fosc/R(11)
-	double rcounter = parser->parsePLLRCounter(currentScan.configuration);//10.7/0.974 = 11
-	setFieldRegister(R_DIVIDER, rcounter);
-	setFieldRegister(R_LD, 0);
-	setFieldRegister(R_TESTMODES, 0);
-	registerToBuffer(&s.rcounter, PIN_DATA, INIT_STEP);
-	qDebug() << convertToStr(&s.rcounter) << rcounter;
-	qDebug() << *devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP);
-	addLEandCLK(INIT_STEP);
-	qDebug() << *devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP);
-	qDebug() << *devicePins.value(PIN_LE)->dataArray.value(INIT_STEP);
+
+
 	foreach (int step, currentScan.steps.keys()) {
 		double ncounter = parser->parsePLLNCounter(currentScan.configuration, currentScan.steps[step],step);
 		double Bcounter = floor(ncounter/32);
@@ -114,10 +107,14 @@ void lmx2326::processNewScan()
 		setFieldRegister(N_CPGAIN_BIT, (int)cp_gain::HIGH);//Phase Det Current, 1= 1 ma, 0= 250 ua
 		registerToBuffer(&s.ncounter, PIN_DATA, step);
 		addLEandCLK(step);
+		if(step == 0) {
+			qDebug() << "Acounter" << Acounter << "Bcounter" << Bcounter;
+			qDebug() << convertToStr(&s.ncounter);
+		}
 	}
 }
 
-void lmx2326::init()
+bool lmx2326::init()
 {
 	setFieldRegister(R_CC, (int)control_field::RCOUNTER);
 	setFieldRegister(N_CC, (int)control_field::NCOUNTER);
@@ -133,12 +130,30 @@ void lmx2326::init()
 	setFieldRegister(L_TESTMODES, 0);
 	setFieldRegister(L_POWER_DOWN_MODE, 0);
 	setFieldRegister(L_TESTMODE, 0);
-	registerToBuffer(&s.latches, PIN_DATA, INIT_STEP);
-	addLEandCLK(INIT_STEP);
-	qDebug() << "lmx2326 initData" << convertToStr(&s.latches);
-	qDebug() << "lmx2326 initData" << *devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP);
-	qDebug() << *devicePins.value(PIN_LE)->dataArray.value(INIT_STEP);
-	qDebug() << *devicePins.value(PIN_CLK)->dataArray.value(INIT_STEP);
+	registerToBuffer(&s.latches, PIN_DATA, HW_INIT_STEP);
+	addLEandCLK(HW_INIT_STEP);
+	qDebug() << "lmx2326 initData" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
+	qDebug() << "lmx2326 initMask" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP).dataMask;
+	qDebug() << "lmx2326 initleda" << *devicePins.value(PIN_LE)->data.value(HW_INIT_STEP).dataArray;
+	qDebug() << "lmx2326 initlema" << *devicePins.value(PIN_LE)->data.value(HW_INIT_STEP).dataMask;
+	//qDebug() << "lmx2326 initclkd" << *devicePins.value(PIN_CLK)->data.value(INIT_STEP).dataArray;
+	//qDebug() << "lmx2326 initclkm" << *devicePins.value(PIN_CLK)->data.value(INIT_STEP).dataMask;
+	qDebug() << "lmx2326 initvcld" << *devicePins.value(PIN_VIRTUAL_CLOCK)->data.value(HW_INIT_STEP).dataArray;
+	qDebug() << "lmx2326 initvclm" << *devicePins.value(PIN_VIRTUAL_CLOCK)->data.value(HW_INIT_STEP).dataMask;
+
+	initIndexes.clear();
+	initIndexes.append(HW_INIT_STEP);
+	double rcounter = parser->parsePLLRCounter(currentScan.configuration);//10.7/0.974 = 11
+	setFieldRegister(R_DIVIDER, rcounter);
+	setFieldRegister(R_LD, 0);
+	setFieldRegister(R_TESTMODES, 0);
+	registerToBuffer(&s.rcounter, PIN_DATA, HW_INIT_STEP -1);
+	qDebug() << "LMX2326 SCAN_INIT_STEP rcounter:" << convertToStr(&s.rcounter) << rcounter;
+	qDebug() << "LMX2326 SCAN_INIT_STEP PIN_DATA dataArray:" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP-1).dataArray;
+	addLEandCLK(HW_INIT_STEP-1);
+
+	initIndexes.append(HW_INIT_STEP - 1);
+	return true;
 }
 
 void lmx2326::reinit()
@@ -179,15 +194,20 @@ double lmx2326::getVcoFrequency(double external_clock_frequency)
 
 bool lmx2326::addLEandCLK(quint32 step)
 {
-	devicePin *cl = devicePins.value(PIN_CLK);
-	if(!cl->dataArray.contains(step))
-		cl->dataArray.insert(step, new QBitArray(registerSize));
-	cl->dataArray.value(step)->fill(true);
+	int totalSize = registerSize + 2;
+	resizePinData(&devicePins.value(PIN_DATA)->data[step], totalSize);
+	devicePin *vclk = devicePins.value(PIN_VIRTUAL_CLOCK);
+	if(!vclk->data.contains(step)) {
+		vclk->data.insert(step, createPinData(totalSize));
+	}
+	vclk->data.value(step).dataArray->fill(true, 0, registerSize);
+	vclk->data.value(step).dataMask->fill(true, 0, registerSize);
 	devicePin *le = devicePins.value(PIN_LE);
-	if(!le->dataArray.contains(step))
-		le->dataArray.insert(step, new QBitArray(registerSize + 1));
-	else if(le->dataArray.value(step)->count() != (registerSize + 1))
-		le->dataArray.value(step)->resize(registerSize + 1);
-	le->dataArray.value(step)->setBit(registerSize);
+	if(!le->data.contains(step))
+		le->data.insert(step, createPinData(totalSize));
+	le->data.value(step).dataArray->setBit(registerSize);
+	le->data.value(step).dataMask->setBit(registerSize);
+	le->data.value(step).dataArray->clearBit(registerSize + 1);
+	le->data.value(step).dataMask->setBit(registerSize + 1);
 	return true;
 }

@@ -30,7 +30,8 @@ SOURCES += main.cpp\
     hardware/deviceparser.cpp \
     hardware/ad9850.cpp \
     hardware/controllers/slimusb.cpp \
-    hardware/controllers/interface.cpp
+    hardware/controllers/interface.cpp \
+    hardware/controllers/usbdevice.cpp
 
 HEADERS  += mainwindow.h \
     hardware/lmx2326.h \
@@ -39,7 +40,8 @@ HEADERS  += mainwindow.h \
     hardware/deviceparser.h \
     hardware/ad9850.h \
     hardware/controllers/slimusb.h \
-    hardware/controllers/interface.h
+    hardware/controllers/interface.h \
+    hardware/controllers/usbdevice.h
 
 FORMS   += mainwindow.ui
 LIBS	+= -L./lib -lusb-1.0

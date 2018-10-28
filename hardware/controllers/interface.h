@@ -33,7 +33,7 @@ class interface: public QObject
 {
 	Q_OBJECT
 public:
-	interface(QObject *parent = 0);
+	interface(QObject *parent);
 protected slots:
 	virtual void commandNextStep() = 0;
 	virtual void commandPreviousStep() = 0;
@@ -41,15 +41,14 @@ protected slots:
 	virtual void autoScan() = 0;
 	virtual void pauseScan() = 0;
 	virtual void resumeScan() = 0;
-	void setScanConfiguration(hardwareDevice::scanConfig configuration);
 public:
+	void setScanConfiguration(hardwareDevice::scanConfig configuration);
 	void hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices);
 	QHash<hardwareDevice::MSAdevice, hardwareDevice *> getCurrentHardwareDevices() const;
 
 signals:
 	void dataReady(int step, double magnitude, double phase);
 protected:
-	hardwareDevice::scanStruct currentScan;
 	quint32 currentStep;
 	bool isInverted;
 	quint32 numberOfSteps;

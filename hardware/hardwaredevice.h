@@ -31,7 +31,8 @@
 #include <limits>
 #include <QObject>
 
-#define INIT_STEP std::numeric_limits<quint32>::max()
+#define HW_INIT_STEP std::numeric_limits<quint32>::max()
+#define SCAN_INIT_STEP HW_INIT_STEP-1
 class deviceParser;
 
 class hardwareDevice:public QObject
@@ -59,17 +60,20 @@ public:
 	} scanStruct;
 
 	hardwareDevice(QObject *parent);
-	typedef enum {INPUT, OUTPUT, INPUT_OUTPUT, CLK}pinType;
+	typedef enum {MAIN_DATA, GEN_INPUT, GEN_OUTPUT, INPUT_OUTPUT, CLK, VIRTUAL_CLK}pinType;
 	typedef enum {CLOCK_RISING_EDGE, CLOCK_FALLING_EDGE}clockType;
+	typedef struct {
+		QBitArray *dataArray;
+		QBitArray *dataMask;
+	} pin_data;
 	typedef struct {
 		QString name;
 		pinType IOtype;
-		int type;
 		void *hwconfig;
-		QHash<quint32, QBitArray *> dataArray;//dataarray containing the serialized bit values for each scan step
+		QHash<quint32, pin_data> data;//dataarray containing the serialized bit values for each scan step
 	} devicePin;
 	virtual void processNewScan()=0;
-	virtual void init()=0;
+	virtual bool init()=0;
 	virtual void reinit()=0;
 	// gets the type of CLK this device needs, dedicated or system wide
 	virtual clockType getClk_type() const=0;
@@ -80,6 +84,7 @@ public:
 	QHash<int, devicePin*> devicePins;
 	HWdevice getHardwareType();
 	static void setNewScan(scanStruct scan);
+	QList<int> getInitIndexes(){return initIndexes;}
 protected:
 	typedef struct {
 		quint64 mask;
@@ -87,6 +92,7 @@ protected:
 		quint8 bits;
 		quint64 *reg;
 	} field_struct;
+	QList<int> initIndexes;
 	deviceParser *parser;
 	// contains a structure describing each field, where it is, how bit it is, etc...
 	QHash<int, field_struct> fieldlist;
@@ -101,6 +107,9 @@ protected:
 	void fillField(int field, QList<int> bits, quint64 *reg);
 	void registerToBuffer(quint64 *reg, int pin, quint32 step);
 	int registerSize;
+	hardwareDevice::pin_data createPinData(int size);
+	bool convertStringToBitArray(QString string, QBitArray *array);
+	void resizePinData(pin_data *pin, int size);
 protected slots:
 };
 

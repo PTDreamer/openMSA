@@ -41,7 +41,10 @@ const QHash<int, hardwareDevice::devicePin*>  hardwareDevice::getDevicePins()
 hardwareDevice::~hardwareDevice()
 {
 	foreach (devicePin *pin, devicePins.values()) {
-		qDeleteAll(pin->dataArray.values());
+		foreach (pin_data d, pin->data.values()) {
+			delete d.dataArray;
+			delete d.dataMask;
+		}
 	}
 	qDeleteAll(devicePins);
 }
@@ -116,18 +119,51 @@ void hardwareDevice::fillField(int field, QList<int> bits, quint64 *reg)
 	fieldlist.insert(field, st);
 }
 
+hardwareDevice::pin_data hardwareDevice::createPinData(int size) {
+	pin_data d;
+	d.dataArray = new QBitArray(size);
+	d.dataMask = new QBitArray(size);
+	return d;
+}
+
+void hardwareDevice::resizePinData(pin_data *pin, int size) {
+	pin->dataArray->resize(size);
+	pin->dataMask->resize(size);
+}
+
+bool hardwareDevice::convertStringToBitArray(QString string, QBitArray *array)
+{
+	int val = -1;
+	string = string.simplified().replace(" ","");
+	array->resize(string.length());
+	for(int x = 0; x < string.size(); ++x) {
+		if(string.mid(x, 1) == "0") {
+			val = 0;
+		}
+		else if(string.mid(x, 1) == "1")
+			val = 1;
+		else
+			return false;
+		(*array)[x] = val;
+	}
+	return true;
+}
+
 void hardwareDevice::registerToBuffer(quint64 *reg, int pin, quint32 step)
 {
-	if(!devicePins.value(pin)->dataArray.contains(step))
-		devicePins.value(pin)->dataArray.insert(step, new QBitArray());
-	QBitArray * arr = devicePins.value(pin)->dataArray.value(step);
-	arr->clear();
-	arr->resize(registerSize);
+	if(!devicePins.value(pin)->data.contains(step))
+		devicePins.value(pin)->data.insert(step, createPinData(registerSize));
+	QBitArray * arrayData = devicePins.value(pin)->data.value(step).dataArray;
+	QBitArray * arrayMask = devicePins.value(pin)->data.value(step).dataMask;
+	//arrayData->resize(registerSize + 1);
+	//arrayMask->resize(registerSize + 1);
+	arrayMask->fill(1);
 	quint64 r = *reg;
 	for(int x = 0; x < registerSize; ++ x) {
-		(*arr)[registerSize - 1 - x] = r & (quint64)1;
+		(*arrayData)[registerSize - 1 - x] = r & (quint64)1;
 		r = r >> 1;
 	}
+	//arrayMask->setBit(registerSize);
 }
 
 genericPLL::genericPLL(QObject *parent):hardwareDevice(parent)

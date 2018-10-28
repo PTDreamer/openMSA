@@ -21,11 +21,11 @@ public:
 
 	clockType getClk_type() const;
 	void processNewScan();
-	void init();
+	bool init();
 	void reinit();
 	~lmx2326();
 	int getRCounter();
-	typedef enum {PIN_CLK, PIN_DATA, PIN_LE} pins;
+	typedef enum {PIN_CLK, PIN_DATA, PIN_LE, PIN_VIRTUAL_CLOCK} pins;
 protected:
 private:
 	void loadRcounterCC(int value);
@@ -45,6 +45,5 @@ private:
 	double getVcoFrequency(double external_clock_frequency);
 	bool addLEandCLK(quint32 step);
 	bool checkSettings();
-
 };
 #endif // LMX2326_H

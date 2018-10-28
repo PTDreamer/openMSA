@@ -48,20 +48,20 @@ ad9850::ad9850(hardwareDevice::MSAdevice device, QObject *parent) : genericDDS(p
 	bits << 35 << 36 << 37 << 38 << 39;
 	fillField(FIELD_PHASE, bits, &deviceRegister);
 	devicePin *pin = new devicePin;
-	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Data";
-	pin->IOtype = hardwareDevice::INPUT;
+	pin->IOtype = hardwareDevice::MAIN_DATA;
 	devicePins.insert(PIN_DATA, pin);
 	pin = new devicePin;
-	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Frequency Update";
-	pin->IOtype = hardwareDevice::INPUT;
+	pin->IOtype = hardwareDevice::GEN_INPUT;
 	devicePins.insert(PIN_FQUD, pin);
 	pin = new devicePin;
-	pin->dataArray = QHash<quint32, QBitArray *>();
 	pin->name = "Clock";
 	pin->IOtype = hardwareDevice::CLK;
 	devicePins.insert(PIN_WCLK, pin);
+	pin = new devicePin;
+	pin->IOtype = hardwareDevice::VIRTUAL_CLK;
+	devicePins.insert(PIN_VIRTUAL_CLOCK, pin);
 }
 
 void ad9850::processNewScan()
@@ -71,35 +71,37 @@ void ad9850::processNewScan()
 		setFieldRegister(FIELD_FREQUENCY, base);
 		registerToBuffer(&deviceRegister, PIN_DATA, step);
 	}
-	foreach(int x, devicePins.value(PIN_DATA)->dataArray.keys()) {
-		QBitArray *arr = devicePins.value(PIN_DATA)->dataArray.value(x);
-		//qDebug() << "ad9850" << getDDSOutput(x) << *arr;
-	}
+//	foreach(int x, devicePins.value(PIN_DATA)->data.keys()) {
+//		QBitArray *arr = devicePins.value(PIN_DATA)->data.value(x).dataArray;
+//		//qDebug() << "ad9850" << getDDSOutput(x) << *arr;
+//	}
 }
 
-void ad9850::init()
+bool ad9850::init()
 {
-	if(!devicePins.value(PIN_DATA)->dataArray.contains(INIT_STEP))
-		devicePins.value(PIN_DATA)->dataArray.insert(INIT_STEP, new QBitArray(registerSize + 2));
+	foreach (int key, devicePins.keys()) {
+		devicePins.value(key)->data.insert(HW_INIT_STEP, createPinData(0));
+	}
+	QString clkd = "111010 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";//1
+	QString clkm = "100111 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";
+	QString fqud = "010000 10 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 10";//2
+	QString fqum = "011000 11 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 11";
+	QString datd = "000000 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";
+	QString datm = "000000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 00";
+	QString vcld = "000000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 00";
+	QString vclm = "000000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 10";
 
-	if(!devicePins.value(PIN_WCLK)->dataArray.contains(INIT_STEP))
-		devicePins.value(PIN_WCLK)->dataArray.insert(INIT_STEP, new QBitArray(registerSize + 2));
-
-	if(!devicePins.value(PIN_FQUD)->dataArray.contains(INIT_STEP))
-		devicePins.value(PIN_FQUD)->dataArray.insert(INIT_STEP, new QBitArray(registerSize + 2));
-
-	devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP)->fill(false);
-	devicePins.value(PIN_FQUD)->dataArray.value(INIT_STEP)->fill(false);
-	devicePins.value(PIN_WCLK)->dataArray.value(INIT_STEP)->fill(true);
-
-	devicePins.value(PIN_WCLK)->dataArray.value(INIT_STEP)->setBit(registerSize, false);
-	devicePins.value(PIN_FQUD)->dataArray.value(INIT_STEP)->setBit(registerSize, true);
-	devicePins.value(PIN_WCLK)->dataArray.value(INIT_STEP)->setBit(registerSize + 1, false);
-
-	qDebug() << "ad9850 wclk" << *devicePins.value(PIN_WCLK)->dataArray.value(INIT_STEP);
-	qDebug() << "ad9850 fqud" << *devicePins.value(PIN_FQUD)->dataArray.value(INIT_STEP);
-	qDebug() << "ad9850 data" << *devicePins.value(PIN_DATA)->dataArray.value(INIT_STEP);
-
+	convertStringToBitArray(clkd, devicePins.value(PIN_WCLK)->data.value(HW_INIT_STEP).dataArray);
+	convertStringToBitArray(clkm, devicePins.value(PIN_WCLK)->data.value(HW_INIT_STEP).dataMask);
+	convertStringToBitArray(fqud, devicePins.value(PIN_FQUD)->data.value(HW_INIT_STEP).dataArray);
+	convertStringToBitArray(fqum, devicePins.value(PIN_FQUD)->data.value(HW_INIT_STEP).dataMask);
+	convertStringToBitArray(datd, devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP).dataArray);
+	convertStringToBitArray(datm, devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP).dataMask);
+	convertStringToBitArray(vcld, devicePins.value(PIN_VIRTUAL_CLOCK)->data.value(HW_INIT_STEP).dataArray);
+	convertStringToBitArray(vclm, devicePins.value(PIN_VIRTUAL_CLOCK)->data.value(HW_INIT_STEP).dataMask);
+	initIndexes.clear();
+	initIndexes.append(HW_INIT_STEP);
+	return true;
 }
 
 void ad9850::reinit()
@@ -114,14 +116,18 @@ bool ad9850::checkSettings()
 
 void ad9850::registerToBuffer(quint64 *reg, int pin, quint32 step)
 {
-	if(!devicePins.value(pin)->dataArray.contains(step))
-		devicePins.value(pin)->dataArray.insert(step, new QBitArray());
-	QBitArray * arr = devicePins.value(pin)->dataArray.value(step);
-	arr->clear();
-	arr->resize(registerSize);
+	if(!devicePins.value(pin)->data.contains(step))
+		devicePins.value(pin)->data.insert(step, createPinData(registerSize));
+	QBitArray * arrayData = devicePins.value(pin)->data.value(step).dataArray;
+	QBitArray * arrayMask = devicePins.value(pin)->data.value(step).dataMask;
+	arrayData->clear();
+	arrayData->resize(registerSize);
+	arrayMask->clear();
+	arrayMask->resize(registerSize);
 	quint64 r = *reg;
 	for(int x = 0; x < registerSize; ++ x) {
-		(*arr)[x] = r & (quint64)1;
+		(*arrayMask)[x] = 1;
+		(*arrayData)[x] = r & (quint64)1;
 		r = r >> 1;
 	}
 }
