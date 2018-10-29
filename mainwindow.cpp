@@ -39,6 +39,8 @@ MainWindow::MainWindow(QWidget *parent) :
 	QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices;
 	devices.insert(hardwareDevice::PLL1, hardwareDevice::LMX2326);
 	devices.insert(hardwareDevice::DDS1, hardwareDevice::AD9850);
+	devices.insert(hardwareDevice::ADC_MAG, hardwareDevice::AD7685);
+	devices.insert(hardwareDevice::ADC_PH, hardwareDevice::AD7685);
 	s->init(3);
 	hardwareDevice::scanConfig config;
 	config.LO2 = 1024;
@@ -47,9 +49,12 @@ MainWindow::MainWindow(QWidget *parent) :
 	config.PLL1phasefreq = 0.974;
 	config.finalFrequency = 10.7;
 	config.masterOscilatorFrequency = 64;
+	config.scanType = hardwareDevice::SA;
+	config.adcAveraging = 2;
 	s->setScanConfiguration(config);
 	s->hardwareInit(devices);
 	s->initScan(false, -0.075, 0.075, 0.15/400);
+	//s->autoScan();
 }
 
 MainWindow::~MainWindow()

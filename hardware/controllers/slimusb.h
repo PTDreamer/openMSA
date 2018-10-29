@@ -34,6 +34,8 @@
 #include <QVector>
 #include "../lmx2326.h"
 #include "../ad9850.h"
+#include "../genericadc.h"
+
 #include "usbdevice.h"
 
 class slimusb : public interface
@@ -51,7 +53,13 @@ public:
 	bool getIsConnected() const;
 	void initScan(bool inverted, double start, double end, double step);
 	void hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices);
-protected slots:
+	unsigned long getWriteReadDelay_us() const;
+	void setWriteReadDelay_us(unsigned long value);
+	bool isScanning();
+
+protected:
+	void run();
+public slots:
 	void commandNextStep();
 	void commandPreviousStep();
 	void autoScan();
@@ -73,19 +81,42 @@ private:
 	parallelEqui *pll1le;
 	parallelEqui *dds1data;
 	parallelEqui *dds1fqu;
+
+	parallelEqui *pll2data;
+	parallelEqui *pll2le;
+	parallelEqui *dds3data;
+	parallelEqui *dds3fqu;
+
+	parallelEqui *pll3data;
+	parallelEqui *pll3le;
 	genericPLL *pll1;
+	genericPLL *pll2;
+	genericPLL *pll3;
+
 	genericDDS *dds1;
+	genericDDS *dds3;
+
+	genericADC *adcmag;
+	genericADC *adcph;
 	QBitArray *pll1array;
 	QBitArray *dds1array;
+	QBitArray *pll2array;
+	QBitArray *dds3array;
 	QHash<uint8_t, uint8_t> latchToUSBNumber;
 	void commandStep(int step);
 	void commandInitStep(hardwareDevice *dev, int step);
-	void sendUSB(QByteArray data, uint8_t latch, bool autoClock);
+	void sendUSB(QByteArray data, uint8_t latch, bool autoClock, bool isADC = false);
 	QString byteToString(uint8_t byte);
 	QString constructString(uint8_t latch1, uint8_t latch2, uint8_t latch3, uint8_t latch4, QString clock);
 	void usbToString(QByteArray array, bool print, int temp);
 	QHash<quint32, QByteArray *> usbData;
 	void printUSBData(int step);
+	unsigned long writeReadDelay_us;
+	bool isPaused;
+	bool singleStep;
+	QByteArray adcSend;
+	QByteArray adcReceive;
+	int expectedAdcSize;
 };
 
 #endif // SLIMUSB_H

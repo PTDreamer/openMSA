@@ -215,6 +215,33 @@ int usbdevice::enableCallBack(bool enable)
 	return true;
 }
 
+bool usbdevice::sendArray(QByteArray data, QByteArray receivedData, int expectedSize) {
+	if(!usbdevice::deviceHandler) {
+		return false;
+	}
+	int actual;
+	int r = libusb_bulk_transfer(deviceHandler, (2 | LIBUSB_ENDPOINT_OUT), reinterpret_cast<unsigned char*>(data.data()), data.size(), &actual, 0);
+	if(r != 0)
+	{
+		usbdevice::deviceHandler = NULL;
+		emit disconnected();
+		return false;
+	}
+	for(int x = 0; x < 10; ++x) {
+		r = libusb_bulk_transfer(deviceHandler, (6 | LIBUSB_ENDPOINT_IN), reinterpret_cast<unsigned char*>(receivedData.data()), receivedData.size(), &actual, 0);
+		if(r != 0)
+		{
+			usbdevice::deviceHandler = NULL;
+			emit disconnected();
+			return false;
+		}
+		if(actual == expectedSize) {
+			return true;
+		}
+	}
+	return true;
+}
+
 bool usbdevice::sendArray(QByteArray data)
 {
 	if(!usbdevice::deviceHandler)

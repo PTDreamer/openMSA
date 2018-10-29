@@ -28,8 +28,9 @@
 #include "interface.h"
 #include "../lmx2326.h"
 #include "../ad9850.h"
+#include "../genericadc.h"
 
-interface::interface(QObject *parent):QObject(parent)
+interface::interface(QObject *parent):QThread(parent)
 {
 	hardwareDevice::currentScan.configuration.LO2 = 1024;
 	hardwareDevice::currentScan.configuration.appxdds1 = 10.7;
@@ -72,6 +73,10 @@ void interface::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HW
 			break;
 		case hardwareDevice::AD9850:
 			currentHardwareDevices.insert(dev, new ad9850(dev, this));
+			break;
+		case hardwareDevice::AD7685:
+		case hardwareDevice::LT1865:
+			currentHardwareDevices.insert(dev, new genericADC(dev, devices.value(dev), this));
 		default:
 			break;
 		}

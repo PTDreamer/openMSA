@@ -26,10 +26,10 @@
 #ifndef INTERFACE_H
 #define INTERFACE_H
 
-#include <QObject>
+#include <QThread>
 #include "../hardwaredevice.h"
 
-class interface: public QObject
+class interface: public QThread
 {
 	Q_OBJECT
 public:
@@ -41,6 +41,7 @@ protected slots:
 	virtual void autoScan() = 0;
 	virtual void pauseScan() = 0;
 	virtual void resumeScan() = 0;
+	virtual bool isScanning() = 0;
 public:
 	void setScanConfiguration(hardwareDevice::scanConfig configuration);
 	void hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices);
@@ -48,8 +49,10 @@ public:
 
 signals:
 	void dataReady(int step, double magnitude, double phase);
+	void connected();
+	void disconnected();
 protected:
-	quint32 currentStep;
+	qint32 currentStep;
 	bool isInverted;
 	quint32 numberOfSteps;
 private:

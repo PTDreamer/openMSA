@@ -31,7 +31,8 @@ SOURCES += main.cpp\
     hardware/ad9850.cpp \
     hardware/controllers/slimusb.cpp \
     hardware/controllers/interface.cpp \
-    hardware/controllers/usbdevice.cpp
+    hardware/controllers/usbdevice.cpp \
+    hardware/genericadc.cpp
 
 HEADERS  += mainwindow.h \
     hardware/lmx2326.h \
@@ -41,7 +42,8 @@ HEADERS  += mainwindow.h \
     hardware/ad9850.h \
     hardware/controllers/slimusb.h \
     hardware/controllers/interface.h \
-    hardware/controllers/usbdevice.h
+    hardware/controllers/usbdevice.h \
+    hardware/genericadc.h
 
 FORMS   += mainwindow.ui
 LIBS	+= -L./lib -lusb-1.0

@@ -72,6 +72,7 @@ public:
 	static libusb_device_handle *deviceHandler;
 	bool isConnected() {return usbdevice::deviceHandler != NULL;}
 	bool sendArray(QByteArray data);
+	bool sendArray(QByteArray data, QByteArray receivedData, int expectedSize);
 protected:
 
 private:

@@ -39,8 +39,9 @@ class hardwareDevice:public QObject
 {
 	Q_OBJECT
 public:
-	typedef enum {LMX2326, AD9850} HWdevice;
-	typedef enum {PLL1, DDS1} MSAdevice;
+	typedef enum {LMX2326, AD9850, AD7685, LT1865} HWdevice;
+	typedef enum {PLL1, PLL2, PLL3, DDS1, DDS3, ADC_MAG, ADC_PH} MSAdevice;
+	typedef enum {SA, SATG, VNA} scanType_t;
 	typedef struct {
 		double frequency;
 		double LO1;
@@ -52,6 +53,8 @@ public:
 		double appxdds1; // center freq. of DDS1 xtal filter; exact value determined in calibration
 		double PLL1phasefreq; // from configuration default=0.974
 		double masterOscilatorFrequency;
+		uint8_t adcAveraging;
+		scanType_t scanType;
 	} scanConfig;
 
 	typedef struct {
