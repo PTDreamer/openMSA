@@ -74,7 +74,6 @@ QString hardwareDevice::convertToStr(quint64 *reg)
 	QString ret = "000000000000000000000";
 	quint64 temp = 0;
 	int i = 0;
-	qDebug() << value;
 	for(i = 0; i < 20; ++i) {
 		temp = (quint64)(value / 2);
 		quint64 temp2 = value - 2*temp;

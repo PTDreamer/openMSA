@@ -94,32 +94,25 @@ hardwareDevice::clockType lmx2326::getClk_type() const
 
 void lmx2326::processNewScan()
 {
-	Q_ASSERT(s.ncounter <= 0b111111111111111111111);
-	qDebug() << "starting processNewScan"<< s.ncounter;
+	qDebug() << "lmx2326 starting processNewScan";
 	double ncounter = 0;
 	double Bcounter = 0;
 	double Acounter = 0;
-	Q_ASSERT(s.ncounter <= 0b111111111111111111111);
-	foreach (int step, msa::getInstance().currentScan.steps.keys()) {
-		qDebug() << step;
-//		Q_ASSERT(s.ncounter <= 0b111111111111111111111);
+	QList<quint32> index;
+	index.append(msa::getInstance().currentScan.steps.keys());
+	std::sort(index.begin(), index.end());
+	foreach (int step, index) {
+		if(initIndexes.contains(step))
+				continue;
 		ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, msa::getInstance().currentScan.steps[step],step);
 		Bcounter = floor(ncounter/32);
 		Acounter = round(ncounter-(Bcounter*32));
 		if(step == 0)
 			qDebug() << "1" << s.ncounter;
 		setFieldRegister(N_ACOUNTER_DIVIDER, Acounter);
-		if(step == 0)
-			qDebug() << "2" << s.ncounter;
 		setFieldRegister(N_BCOUNTER_DIVIDER, Bcounter);
-		if(step == 0)
-			qDebug() << "3" << s.ncounter;
 		setFieldRegister(N_CC, (int)control_field::NCOUNTER);
-		if(step == 0)
-			qDebug() << "4" << s.ncounter;
 		setFieldRegister(N_CPGAIN_BIT, (int)cp_gain::HIGH);//Phase Det Current, 1= 1 ma, 0= 250 ua
-		if(step == 0)
-			qDebug() << "5" << s.ncounter;
 		registerToBuffer(&s.ncounter, PIN_DATA, step);
 		addLEandCLK(step);
 		if(step == 0) {

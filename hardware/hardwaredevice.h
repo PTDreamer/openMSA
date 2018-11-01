@@ -65,7 +65,7 @@ public:
 	QHash<int, devicePin*> devicePins;
 	HWdevice getHardwareType();
 	static void setNewScan(msa::scanStruct scan);
-	QList<int> getInitIndexes(){return initIndexes;}
+	QList<quint32> getInitIndexes(){return initIndexes;}
 protected:
 	typedef struct {
 		quint64 mask;
@@ -73,7 +73,7 @@ protected:
 		quint8 bits;
 		quint64 *reg;
 	} field_struct;
-	QList<int> initIndexes;
+	QList<quint32> initIndexes;
 	deviceParser *parser;
 	// contains a structure describing each field, where it is, how bit it is, etc...
 	QHash<int, field_struct> fieldlist;
