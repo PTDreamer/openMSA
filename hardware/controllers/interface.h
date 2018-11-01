@@ -45,8 +45,8 @@ protected slots:
 	virtual bool isScanning() = 0;
 public:
 	void setScanConfiguration(hardwareDevice::scanConfig configuration);
-	void hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices);
-	QHash<hardwareDevice::MSAdevice, hardwareDevice *> getCurrentHardwareDevices() const;
+	virtual void hardwareInit();
+	//QHash<hardwareDevice::MSAdevice, hardwareDevice *> getCurrentHardwareDevices() const;
 
 signals:
 	void dataReady(int step, double magnitude, double phase);
@@ -58,7 +58,7 @@ protected:
 	bool isInverted;
 	quint32 numberOfSteps;
 private:
-	QHash<hardwareDevice::MSAdevice, hardwareDevice *> currentHardwareDevices;
+	//QHash<hardwareDevice::MSAdevice, hardwareDevice *> currentHardwareDevices;
 };
 
 #endif // INTERFACE_H

@@ -29,6 +29,7 @@
 #include "../lmx2326.h"
 #include "../ad9850.h"
 #include "../genericadc.h"
+#include "../msa.h"
 
 interface::interface(QObject *parent):QThread(parent)
 {
@@ -42,7 +43,7 @@ interface::interface(QObject *parent):QThread(parent)
 
 interface::~interface()
 {
-	foreach (hardwareDevice *dev, currentHardwareDevices) {
+	foreach (hardwareDevice *dev, msa::getInstance().currentHardwareDevices) {
 		foreach (hardwareDevice::devicePin *pin, dev->devicePins.values()) {
 			foreach (hardwareDevice::pin_data data, pin->data.values()) {
 				if(data.dataArray)
@@ -53,7 +54,7 @@ interface::~interface()
 		}
 		qDeleteAll(dev->devicePins);
 	}
-	qDeleteAll(currentHardwareDevices);
+	qDeleteAll(msa::getInstance().currentHardwareDevices);
 }
 
 void interface::initScan(bool inverted, double start, double end, double step, int band)
@@ -106,29 +107,14 @@ void interface::setScanConfiguration(hardwareDevice::scanConfig configuration)
 	hardwareDevice::currentScan.configuration = configuration;
 }
 
-void interface::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices)
+void interface::hardwareInit()
 {
-	qDeleteAll(currentHardwareDevices);
-	currentHardwareDevices.clear();
-	foreach (hardwareDevice::MSAdevice dev, devices.keys()) {
-		switch (devices.value(dev)) {
-		case hardwareDevice::LMX2326:
-			currentHardwareDevices.insert(dev, new lmx2326(dev, this));
-			break;
-		case hardwareDevice::AD9850:
-			currentHardwareDevices.insert(dev, new ad9850(dev, this));
-			break;
-		case hardwareDevice::AD7685:
-		case hardwareDevice::LT1865:
-			currentHardwareDevices.insert(dev, new genericADC(dev, devices.value(dev), this));
-		default:
-			break;
-		}
-		currentHardwareDevices.value(dev)->init();
+	foreach (hardwareDevice *dev, msa::getInstance().currentHardwareDevices.values()) {
+		dev->init();
 	}
 }
 
-QHash<hardwareDevice::MSAdevice, hardwareDevice *> interface::getCurrentHardwareDevices() const
-{
-	return currentHardwareDevices;
-}
+//QHash<hardwareDevice::MSAdevice, hardwareDevice *> interface::getCurrentHardwareDevices() const
+//{
+//	return currentHardwareDevices;
+//}

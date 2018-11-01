@@ -52,7 +52,7 @@ public:
 	void setAutoConnect(bool value);
 	bool getIsConnected() const;
 	void initScan(bool inverted, double start, double end, double step, int band = -1);
-	void hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices);
+	void hardwareInit();
 	unsigned long getWriteReadDelay_us() const;
 	void setWriteReadDelay_us(unsigned long value);
 	bool isScanning();
@@ -94,6 +94,8 @@ private:
 	bool autoConnect;
 	QVector<uint8_t> currentLatchValue;
 	bool singleStep;
+	unsigned long writeReadDelay_us;
+	bool isPaused;
 	parallelEqui *pll1data;
 	parallelEqui *pll1le;
 	parallelEqui *dds1data;
@@ -129,8 +131,6 @@ private:
 	void usbToString(QByteArray array, bool print, int temp);
 	QHash<quint32, QByteArray *> usbData;
 	void printUSBData(int step);
-	unsigned long writeReadDelay_us;
-	bool isPaused;
 	QByteArray adcSend;
 	int expectedAdcSize;
 };

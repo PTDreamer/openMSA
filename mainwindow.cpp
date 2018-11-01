@@ -66,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	config.finalFilterBandwidth = 0.015;
 	config.SGout = 0;
 	s->setScanConfiguration(config);
-	s->hardwareInit(devices);
+	msa::getInstance().hardwareInit(devices, s);
 	s->initScan(false, -0.075, 0.075, 0.15/400);
 	s->autoScan();
 }

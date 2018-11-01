@@ -28,8 +28,8 @@
 #include "../deviceparser.h"
 #include "../lmx2326.h"
 #include "../ad9850.h"
-
-slimusb::slimusb(QObject *parent): interface(parent), usb(parent),autoConnect(true), writeReadDelay_us(100), isPaused(false), singleStep(false),
+#include "../msa.h"
+slimusb::slimusb(QObject *parent): interface(parent), usb(parent), autoConnect(true), singleStep(false), writeReadDelay_us(100), isPaused(false),
 	pll1data(NULL),pll1le(NULL),dds1data(NULL),dds1fqu(NULL),pll2data(NULL),pll2le(NULL),dds3data(NULL),dds3fqu(NULL)
 	,pll3data(NULL),pll3le(NULL),pll1(NULL),pll2(NULL),pll3(NULL),dds1(NULL),dds3(NULL),adcmag(NULL),adcph(NULL),pll1array(NULL)
 	,pll3array(NULL),dds1array(NULL),pll2array(NULL),dds3array(NULL)
@@ -70,7 +70,7 @@ slimusb::~slimusb()
 	qDeleteAll(usbData.values());
 	this->requestInterruption();
 	this->wait(1000);
-	foreach (hardwareDevice *dev, interface::getCurrentHardwareDevices()) {
+	foreach (hardwareDevice *dev, msa::getInstance().currentHardwareDevices) {
 		foreach (hardwareDevice::devicePin *pin, dev->devicePins.values()) {
 			if(pin->hwconfig)
 				delete (parallelEqui*)pin->hwconfig;
@@ -176,7 +176,7 @@ void slimusb::initScan(bool inverted, double start, double end, double step, int
 	dds3->processNewScan();
 	qDeleteAll(usbData.values());
 	usbData.clear();
-	foreach (hardwareDevice *dev, getCurrentHardwareDevices().values()) {
+	foreach (hardwareDevice *dev, msa::getInstance().currentHardwareDevices.values()) {
 		foreach (hardwareDevice::devicePin *pin, dev->getDevicePins().values()) {
 			if(pin->IOtype == hardwareDevice::MAIN_DATA) {
 				dataPins.append(pin);
@@ -223,10 +223,10 @@ void slimusb::initScan(bool inverted, double start, double end, double step, int
 	adcSend.append(hardwareDevice::currentScan.configuration.adcAveraging);
 }
 
-void slimusb::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices)
+void slimusb::hardwareInit()
 {
-	interface::hardwareInit(devices);
-	QHash<hardwareDevice::MSAdevice, hardwareDevice *> loadedDevices = getCurrentHardwareDevices();
+	interface::hardwareInit();
+	QHash<hardwareDevice::MSAdevice, hardwareDevice *> loadedDevices = msa::getInstance().currentHardwareDevices;
 	foreach(hardwareDevice* dev, loadedDevices.values()) {
 		if((loadedDevices.key(dev) == hardwareDevice::PLL1) || (loadedDevices.key(dev) == hardwareDevice::PLL2) || (loadedDevices.key(dev) == hardwareDevice::PLL3)) {
 			genericPLL *pll = qobject_cast<genericPLL*>(dev);
