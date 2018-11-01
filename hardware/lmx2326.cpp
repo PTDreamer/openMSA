@@ -1,7 +1,7 @@
 #include "lmx2326.h"
 #include <QDebug>
 
-lmx2326::lmx2326(hardwareDevice::MSAdevice device, QObject *parent):genericPLL(parent)
+lmx2326::lmx2326(msa::MSAdevice device, QObject *parent):genericPLL(parent)
 {
 	registerSize = 21;
 	parser = new deviceParser(device, this);
@@ -82,6 +82,9 @@ lmx2326::lmx2326(hardwareDevice::MSAdevice device, QObject *parent):genericPLL(p
 	pin->name = "";
 	pin->IOtype = hardwareDevice::VIRTUAL_CLK;
 	devicePins.insert(PIN_VIRTUAL_CLOCK, pin);
+	qDebug() << "DURING INIT" << s.ncounter;
+	Q_ASSERT(s.ncounter <= 0b111111111111111111111);
+
 }
 
 hardwareDevice::clockType lmx2326::getClk_type() const
@@ -91,21 +94,36 @@ hardwareDevice::clockType lmx2326::getClk_type() const
 
 void lmx2326::processNewScan()
 {
+	Q_ASSERT(s.ncounter <= 0b111111111111111111111);
+	qDebug() << "starting processNewScan"<< s.ncounter;
 	double ncounter = 0;
 	double Bcounter = 0;
 	double Acounter = 0;
-	foreach (int step, currentScan.steps.keys()) {
-		ncounter = parser->parsePLLNCounter(currentScan.configuration, currentScan.steps[step],step);
+	Q_ASSERT(s.ncounter <= 0b111111111111111111111);
+	foreach (int step, msa::getInstance().currentScan.steps.keys()) {
+		qDebug() << step;
+//		Q_ASSERT(s.ncounter <= 0b111111111111111111111);
+		ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, msa::getInstance().currentScan.steps[step],step);
 		Bcounter = floor(ncounter/32);
 		Acounter = round(ncounter-(Bcounter*32));
+		if(step == 0)
+			qDebug() << "1" << s.ncounter;
 		setFieldRegister(N_ACOUNTER_DIVIDER, Acounter);
+		if(step == 0)
+			qDebug() << "2" << s.ncounter;
 		setFieldRegister(N_BCOUNTER_DIVIDER, Bcounter);
+		if(step == 0)
+			qDebug() << "3" << s.ncounter;
 		setFieldRegister(N_CC, (int)control_field::NCOUNTER);
+		if(step == 0)
+			qDebug() << "4" << s.ncounter;
 		setFieldRegister(N_CPGAIN_BIT, (int)cp_gain::HIGH);//Phase Det Current, 1= 1 ma, 0= 250 ua
+		if(step == 0)
+			qDebug() << "5" << s.ncounter;
 		registerToBuffer(&s.ncounter, PIN_DATA, step);
 		addLEandCLK(step);
 		if(step == 0) {
-			qDebug() << "Acounter" << Acounter << "Bcounter" << Bcounter;
+			qDebug() << "Acounter" << Acounter << "Bcounter" << Bcounter << s.ncounter;
 			qDebug() << convertToStr(&s.ncounter);
 		}
 	}
@@ -140,7 +158,7 @@ bool lmx2326::init()
 
 	initIndexes.clear();
 	initIndexes.append(HW_INIT_STEP);
-	double rcounter = parser->parsePLLRCounter(currentScan.configuration);//10.7/0.974 = 11
+	double rcounter = parser->parsePLLRCounter(msa::getInstance().currentScan.configuration);//10.7/0.974 = 11
 	setFieldRegister(R_DIVIDER, rcounter);
 	setFieldRegister(R_LD, 0);
 	setFieldRegister(R_TESTMODES, 0);
@@ -150,8 +168,9 @@ bool lmx2326::init()
 	addLEandCLK(HW_INIT_STEP - 1);
 
 	initIndexes.append(HW_INIT_STEP - 1);
-
-	double ncounter = parser->parsePLLNCounter(currentScan.configuration, currentScan.steps[HW_INIT_STEP],HW_INIT_STEP);
+	msa::scanStep st;
+	msa::getInstance().currentScan.steps.insert(HW_INIT_STEP, st);
+	double ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, msa::getInstance().currentScan.steps[HW_INIT_STEP],HW_INIT_STEP);
 	if(ncounter > 0) {
 		double Bcounter = floor(ncounter/32);
 		double Acounter = round(ncounter-(Bcounter*32));

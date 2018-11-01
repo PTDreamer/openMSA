@@ -51,7 +51,7 @@ public:
 	bool getAutoConnect() const;
 	void setAutoConnect(bool value);
 	bool getIsConnected() const;
-	void initScan(bool inverted, double start, double end, double step, int band = -1);
+	void initScan();
 	void hardwareInit();
 	unsigned long getWriteReadDelay_us() const;
 	void setWriteReadDelay_us(unsigned long value);
@@ -90,7 +90,7 @@ private:
 		uint8_t mask;
 		uint8_t pin;
 	} parallelEqui;
-	QHash<hardwareDevice::MSAdevice, QHash<hardwareDevice::HWdevice, parallelEqui>> pinMapping;
+	QHash<msa::MSAdevice, QHash<hardwareDevice::HWdevice, parallelEqui>> pinMapping;
 	bool autoConnect;
 	QVector<uint8_t> currentLatchValue;
 	bool singleStep;

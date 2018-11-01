@@ -33,12 +33,12 @@
 
 interface::interface(QObject *parent):QThread(parent)
 {
-	hardwareDevice::currentScan.configuration.LO2 = 1024;
-	hardwareDevice::currentScan.configuration.appxdds1 = 10.7;
-	hardwareDevice::currentScan.configuration.baseFrequency = 0;
-	hardwareDevice::currentScan.configuration.PLL1phasefreq = 0.974;
-	hardwareDevice::currentScan.configuration.finalFilterFrequency = 10.7;
-	hardwareDevice::currentScan.configuration.masterOscilatorFrequency = 64;
+	msa::getInstance().currentScan.configuration.LO2 = 1024;
+	msa::getInstance().currentScan.configuration.appxdds1 = 10.7;
+	msa::getInstance().currentScan.configuration.baseFrequency = 0;
+	msa::getInstance().currentScan.configuration.PLL1phasefreq = 0.974;
+	msa::getInstance().currentScan.configuration.finalFilterFrequency = 10.7;
+	msa::getInstance().currentScan.configuration.masterOscilatorFrequency = 64;
 }
 
 interface::~interface()
@@ -57,54 +57,14 @@ interface::~interface()
 	qDeleteAll(msa::getInstance().currentHardwareDevices);
 }
 
-void interface::initScan(bool inverted, double start, double end, double step, int band)
+void interface::initScan()
 {
-	int steps = (end - start) / step;
-	int thisBand = 0;
-	int bandSelect = 0;
-	for(int x = 0; x < steps; ++x) {
-		hardwareDevice::scanStep s;
-		s.realFrequency = start + (x * step);
-		if(band < 0) {
-			if(s.realFrequency < 1000)
-				thisBand = 1;
-			else if(s.realFrequency < 2000)
-				thisBand = 2;
-			else
-				thisBand = 3;
-		}
-		s.translatedFrequency = s.realFrequency;
-		double IF1;
-		if(band < 0)
-			bandSelect = thisBand;
-		else
-			bandSelect = band;
-		switch (bandSelect) {
-		case 2:
-			s.translatedFrequency = s.translatedFrequency - hardwareDevice::currentScan.configuration.LO2;
-			break;
-		case 3:
-			IF1 = hardwareDevice::currentScan.configuration.LO2 - hardwareDevice::currentScan.configuration.finalFilterFrequency;
-			s.translatedFrequency = s.translatedFrequency - 2*IF1;
-			break;
-		default:
-			break;
-		}
-		s.band = bandSelect;
-		hardwareDevice::currentScan.steps.insert(x, s);
-	}
-	isInverted = inverted;
-	hardwareDevice::scanStruct scan = hardwareDevice::currentScan;
+	msa::scanStruct scan = msa::getInstance().currentScan;
 	numberOfSteps = scan.steps.keys().size();
-	if(inverted)
+	if(msa::getInstance().getIsInverted())
 		currentStep = numberOfSteps;
 	else
 		currentStep = 0;
-}
-
-void interface::setScanConfiguration(hardwareDevice::scanConfig configuration)
-{
-	hardwareDevice::currentScan.configuration = configuration;
 }
 
 void interface::hardwareInit()
@@ -113,8 +73,3 @@ void interface::hardwareInit()
 		dev->init();
 	}
 }
-
-//QHash<hardwareDevice::MSAdevice, hardwareDevice *> interface::getCurrentHardwareDevices() const
-//{
-//	return currentHardwareDevices;
-//}

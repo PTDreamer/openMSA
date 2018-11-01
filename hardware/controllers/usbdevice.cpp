@@ -29,7 +29,7 @@ libusb_device_handle *usbdevice::deviceHandler = NULL;
 
 usbdevice::usbdevice(QObject *parent) : QObject(parent),devs(NULL)
 {
-	connect(this, SIGNAL(closeWorker), &worker, SLOT(quit()));
+	connect(this, SIGNAL(closeWorker()), &worker, SLOT(quit()));
 }
 
 bool usbdevice::init(int debugLevel)

@@ -29,40 +29,31 @@
 #include "ad9850.h"
 #include "genericadc.h"
 
-QHash<hardwareDevice::MSAdevice, hardwareDevice*> deviceParser::deviceList;
-
-const QHash<hardwareDevice::MSAdevice, hardwareDevice*> deviceParser::getDeviceList() {
-	return deviceParser::deviceList;
-}
-
 deviceParser::~deviceParser()
 {
-	deviceList.remove(msadev);
 }
 
-deviceParser::deviceParser(hardwareDevice::MSAdevice dev, hardwareDevice *parent):QObject(parent),msadev(dev), device(parent)
+deviceParser::deviceParser(msa::MSAdevice dev, hardwareDevice *parent):QObject(parent),msadev(dev), device(parent)
 {
 	lmx2326 *l = dynamic_cast<lmx2326*>(parent);
 	ad9850 *a = dynamic_cast<ad9850*>(parent);
 	genericADC *adc = dynamic_cast<genericADC*>(parent);
 	if(l) {
 		hwdev = hardwareDevice::LMX2326;
-		deviceList.insert(dev, dynamic_cast<genericPLL*>(parent));
 	}
 	else if(a) {
 		hwdev = hardwareDevice::AD9850;
-		deviceList.insert(dev, a);
 	}
 	else if(adc) {
 		hwdev = adc->getHardwareType();
 	}
 }
 
-double deviceParser::parsePLLRCounter(hardwareDevice::scanConfig config)
+double deviceParser::parsePLLRCounter(msa::scanConfig config)
 {
 	double ret = -1;
 	switch (msadev) {
-	case hardwareDevice::PLL1:
+	case msa::PLL1:
 		switch (hwdev) {
 		case hardwareDevice::LMX2326:
 			ret = round(config.appxdds1/config.PLL1phasefreq);
@@ -71,7 +62,7 @@ double deviceParser::parsePLLRCounter(hardwareDevice::scanConfig config)
 			break;
 		}
 		break;
-	case hardwareDevice::PLL2:
+	case msa::PLL2:
 		switch (hwdev) {
 		case hardwareDevice::LMX2326:
 			ret = round(config.masterOscilatorFrequency / config.PLL2phasefreq);
@@ -80,7 +71,7 @@ double deviceParser::parsePLLRCounter(hardwareDevice::scanConfig config)
 			break;
 		}
 		break;
-	case hardwareDevice::PLL3:
+	case msa::PLL3:
 		switch (hwdev) {
 		case hardwareDevice::LMX2326:
 			ret = round(config.appxdds3/config.PLL3phasefreq);
@@ -95,18 +86,18 @@ double deviceParser::parsePLLRCounter(hardwareDevice::scanConfig config)
 	return ret;
 }
 
-double deviceParser::parsePLLNCounter(hardwareDevice::scanConfig configuration, hardwareDevice::scanStep &step, int stepNumber)
+double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanStep &step, int stepNumber)
 {
 	double ncounter = 0;
 	double ncount = 0;
 	genericPLL *lmx = NULL;
 	switch (msadev) {
-	case hardwareDevice::PLL1:
+	case msa::PLL1:
 		if(stepNumber == (int)HW_INIT_STEP)
 			return -1;
 		switch (hwdev) {
 		case hardwareDevice::LMX2326:
-			lmx = (genericPLL*)deviceList.value(msadev);
+			lmx = (genericPLL*)msa::getInstance().currentHardwareDevices.value(msadev);
 			step.LO1 = configuration.baseFrequency + step.translatedFrequency + configuration.LO2 - configuration.finalFilterFrequency;
 			ncount = step.LO1/(configuration.appxdds1/ lmx->getRCounter()); //approximates the Ncounter for PLL
 			ncounter = (int)round(ncount); //approximates the ncounter for PLL
@@ -116,10 +107,10 @@ double deviceParser::parsePLLNCounter(hardwareDevice::scanConfig configuration, 
 			break;
 		}
 		break;
-	case hardwareDevice::PLL2:
+	case msa::PLL2:
 		switch (hwdev) {
 		case hardwareDevice::LMX2326:
-			lmx = (genericPLL*)deviceList.value(msadev);
+			lmx = (genericPLL*)msa::getInstance().currentHardwareDevices.value(msadev);
 			ncount = configuration.LO2/(configuration.masterOscilatorFrequency / lmx->getRCounter()); //approximates the Ncounter for PLL
 			ncounter = (int)round(ncount); //approximates the ncounter for PLL
 			lmx->setPFD(configuration.LO2/ncounter, stepNumber);//approx phase freq of PLL
@@ -128,14 +119,14 @@ double deviceParser::parsePLLNCounter(hardwareDevice::scanConfig configuration, 
 			break;
 		}
 		break;
-	case hardwareDevice::PLL3:
+	case msa::PLL3:
 		step.LO3 = 0;
 		if(stepNumber == (int)HW_INIT_STEP)
 			return -1;
 		switch (hwdev) {
 		case hardwareDevice::LMX2326:
-			lmx = (genericPLL*)deviceList.value(msadev);
-			if(configuration.scanType == hardwareDevice::SA_TG) {
+			lmx = (genericPLL*)msa::getInstance().currentHardwareDevices.value(msadev);
+			if(configuration.scanType == msa::SA_TG) {
 				if(!configuration.TGreversed) {
 					if(step.band == 3) {
 						step.LO3 = step.realFrequency + configuration.TGoffset - configuration.LO2;
@@ -146,19 +137,19 @@ double deviceParser::parsePLLNCounter(hardwareDevice::scanConfig configuration, 
 				}
 				else {
 					double reversedFrequency;
-					int reversedIndex = hardwareDevice::currentScan.steps.size() - stepNumber - 1;
+					int reversedIndex = msa::getInstance().currentScan.steps.size() - stepNumber - 1;
 					if(step.band == 1)
-						reversedFrequency = hardwareDevice::currentScan.steps.value(reversedIndex).realFrequency;
+						reversedFrequency = msa::getInstance().currentScan.steps.value(reversedIndex).realFrequency;
 					else
-						reversedFrequency = hardwareDevice::currentScan.steps.value(reversedIndex).translatedFrequency;
+						reversedFrequency = msa::getInstance().currentScan.steps.value(reversedIndex).translatedFrequency;
 					if(step.band == 3)
-						step.LO3 = hardwareDevice::currentScan.steps.value(reversedIndex).realFrequency + configuration.TGoffset - configuration.LO2;
+						step.LO3 = msa::getInstance().currentScan.steps.value(reversedIndex).realFrequency + configuration.TGoffset - configuration.LO2;
 					else
 						step.LO3 = configuration.LO2 + reversedFrequency + configuration.TGoffset;
 				}
 				step.LO3 = configuration.LO2 - configuration.finalFilterFrequency - configuration.TGoffset;
 			}
-			else if(configuration.scanType == hardwareDevice::SA_SG) {
+			else if(configuration.scanType == msa::SA_SG) {
 				if(configuration.SGout <= configuration.LO2)
 					step.LO3 = configuration.SGout + configuration.LO2;
 				else if(configuration.SGout > (2*configuration.LO2))
@@ -182,18 +173,18 @@ double deviceParser::parsePLLNCounter(hardwareDevice::scanConfig configuration, 
 	return ncounter;
 }
 
-quint32 deviceParser::parseDDSOutput(hardwareDevice::scanConfig configuration, int stepNumber, bool &error)
+quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, int stepNumber, bool &error)
 {
 	error = false;
 	double ddsoutput = 0;
 	double fullbase = 0;
 	double base = 0;
 	switch (msadev) {
-	case hardwareDevice::DDS1:
+	case msa::DDS1:
 		switch (hwdev) {
 		case hardwareDevice::AD9850:
 			//	qDebug() << qSetRealNumberPrecision( 10 ) << "acounter" << Acounter << "bcounter" << Bcounter << "ncounter" << ncounter << "rcounter" << rcounter << "frequency" << scan.steps.value(step).frequency<<"LO1"<<scan.steps[step].LO1;
-				ddsoutput = ((genericPLL*)deviceList.value(hardwareDevice::PLL1))->getPFD(stepNumber) * ((genericPLL*)deviceList.value(hardwareDevice::PLL1))->getRCounter();
+				ddsoutput = ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL1))->getPFD(stepNumber) * ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL1))->getRCounter();
 				//if ddsoutput >= ddsclock/2 then  error
 				//the formula for the frequency output of the DDS(AD9850, 9851, or any 32 bit DDS) is:
 				//ddsoutput = base*ddsclock/2^32, where "base" is the decimal equivalent of command words
@@ -203,7 +194,7 @@ quint32 deviceParser::parseDDSOutput(hardwareDevice::scanConfig configuration, i
 				base = round(fullbase);
 				//When entering this routine, ddsoutput was approximate. Now, the exact ddsoutput can be determined by:
 				ddsoutput = base*64/pow(2,32);  //117c19
-				((genericDDS*)deviceList.value(hardwareDevice::DDS1))->setDDSOutput(ddsoutput, stepNumber);
+				((genericDDS*)msa::getInstance().currentHardwareDevices.value(msa::DDS1))->setDDSOutput(ddsoutput, stepNumber);
 			//	qDebug() << qSetRealNumberPrecision( 10 ) << "target freq"<< scan.steps[step].frequency << "ddsoutput" << ddsoutput << "VCO" <<getVcoFrequency(ddsoutput) << "DIFF" <<10.7 - (1024 - getVcoFrequency(ddsoutput));
 				if((ddsoutput - configuration.appxdds1) > (configuration.dds1Filterbandwidth / 2))
 						error = true;
@@ -212,11 +203,11 @@ quint32 deviceParser::parseDDSOutput(hardwareDevice::scanConfig configuration, i
 			break;
 		}
 		break;
-	case hardwareDevice::DDS3:
+	case msa::DDS3:
 		switch (hwdev) {
 		case hardwareDevice::AD9850:
 			//	qDebug() << qSetRealNumberPrecision( 10 ) << "acounter" << Acounter << "bcounter" << Bcounter << "ncounter" << ncounter << "rcounter" << rcounter << "frequency" << scan.steps.value(step).frequency<<"LO1"<<scan.steps[step].LO1;
-				ddsoutput = ((genericPLL*)deviceList.value(hardwareDevice::PLL3))->getPFD(stepNumber) * ((genericPLL*)deviceList.value(hardwareDevice::PLL3))->getRCounter();
+				ddsoutput = ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL3))->getPFD(stepNumber) * ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL3))->getRCounter();
 				//if ddsoutput >= ddsclock/2 then  error
 				//the formula for the frequency output of the DDS(AD9850, 9851, or any 32 bit DDS) is:
 				//ddsoutput = base*ddsclock/2^32, where "base" is the decimal equivalent of command words
@@ -226,7 +217,7 @@ quint32 deviceParser::parseDDSOutput(hardwareDevice::scanConfig configuration, i
 				base = round(fullbase);
 				//When entering this routine, ddsoutput was approximate. Now, the exact ddsoutput can be determined by:
 				ddsoutput = base*64/pow(2,32);  //117c19
-				((genericDDS*)deviceList.value(hardwareDevice::DDS3))->setDDSOutput(ddsoutput, stepNumber);
+				((genericDDS*)msa::getInstance().currentHardwareDevices.value(msa::DDS3))->setDDSOutput(ddsoutput, stepNumber);
 			//	qDebug() << qSetRealNumberPrecision( 10 ) << "target freq"<< scan.steps[step].frequency << "ddsoutput" << ddsoutput << "VCO" <<getVcoFrequency(ddsoutput) << "DIFF" <<10.7 - (1024 - getVcoFrequency(ddsoutput));
 				if((ddsoutput- configuration.appxdds3) > (configuration.dds3Filterbandwidth / 2))
 						error = true;

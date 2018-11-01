@@ -27,13 +27,21 @@
 #include "genericadc.h"
 #include "ad9850.h"
 #include "lmx2326.h"
+#include "controllers/interface.h"
+#include "hardwaredevice.h"
+#include <QDebug>
 
-void msa::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices, interface *usedInterface)
+bool msa::getIsInverted() const
+{
+	return isInverted;
+}
+
+void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 {
 	currentInterface = usedInterface;
 	qDeleteAll(currentHardwareDevices);
 	currentHardwareDevices.clear();
-	foreach (hardwareDevice::MSAdevice dev, devices.keys()) {
+	foreach (msa::MSAdevice dev, devices.keys()) {
 		switch (devices.value(dev)) {
 		case hardwareDevice::LMX2326:
 			currentHardwareDevices.insert(dev, new lmx2326(dev, usedInterface));
@@ -43,10 +51,56 @@ void msa::hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice
 			break;
 		case hardwareDevice::AD7685:
 		case hardwareDevice::LT1865:
-			currentHardwareDevices.insert(dev, new genericADC(dev, devices.value(dev), usedInterface));
+			currentHardwareDevices.insert(dev, new genericADC(dev, (hardwareDevice::HWdevice)devices.value(dev), usedInterface));
 		default:
 			break;
 		}
 	}
 	currentInterface->hardwareInit();
+}
+
+void msa::initScan(bool inverted, double start, double end, double step, int band)
+{
+	int steps = (end - start) / step;
+	int thisBand = 0;
+	int bandSelect = 0;
+	for(int x = 0; x < steps; ++x) {
+		msa::scanStep s;
+		s.realFrequency = start + (x * step);
+		if(band < 0) {
+			if(s.realFrequency < 1000)
+				thisBand = 1;
+			else if(s.realFrequency < 2000)
+				thisBand = 2;
+			else
+				thisBand = 3;
+		}
+		s.translatedFrequency = s.realFrequency;
+		double IF1;
+		if(band < 0)
+			bandSelect = thisBand;
+		else
+			bandSelect = band;
+		switch (bandSelect) {
+		case 2:
+			s.translatedFrequency = s.translatedFrequency - msa::getInstance().currentScan.configuration.LO2;
+			break;
+		case 3:
+			IF1 = msa::getInstance().currentScan.configuration.LO2 - msa::getInstance().currentScan.configuration.finalFilterFrequency;
+			s.translatedFrequency = s.translatedFrequency - 2*IF1;
+			break;
+		default:
+			break;
+		}
+		s.band = bandSelect;
+		qDebug() << x << s.realFrequency << s.translatedFrequency << s.LO1;
+		msa::getInstance().currentScan.steps.insert(x, s);
+	}
+	isInverted = inverted;
+	currentInterface->initScan();
+}
+
+void msa::setScanConfiguration(msa::scanConfig configuration)
+{
+	msa::getInstance().currentScan.configuration = configuration;
 }

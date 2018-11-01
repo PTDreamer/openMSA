@@ -28,6 +28,7 @@
 
 #include <QThread>
 #include "../hardwaredevice.h"
+#include "../msa.h"
 
 class interface: public QThread
 {
@@ -38,15 +39,14 @@ public:
 protected slots:
 	virtual void commandNextStep() = 0;
 	virtual void commandPreviousStep() = 0;
-	virtual void initScan(bool inverted, double start, double end, double step, int band = -1);
 	virtual void autoScan() = 0;
 	virtual void pauseScan() = 0;
 	virtual void resumeScan() = 0;
 	virtual bool isScanning() = 0;
 public:
-	void setScanConfiguration(hardwareDevice::scanConfig configuration);
+	virtual void initScan();
+	void setScanConfiguration(msa::scanConfig configuration);
 	virtual void hardwareInit();
-	//QHash<hardwareDevice::MSAdevice, hardwareDevice *> getCurrentHardwareDevices() const;
 
 signals:
 	void dataReady(int step, double magnitude, double phase);
@@ -55,10 +55,8 @@ signals:
 protected:
 	qint32 currentStep;
 	qint32 lastCommandedStep;
-	bool isInverted;
 	quint32 numberOfSteps;
 private:
-	//QHash<hardwareDevice::MSAdevice, hardwareDevice *> currentHardwareDevices;
 };
 
 #endif // INTERFACE_H

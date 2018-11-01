@@ -25,9 +25,11 @@
  */
 #include "hardwaredevice.h"
 #include "deviceparser.h"
+#include <QDebug>
 
-hardwareDevice::scanStruct hardwareDevice::currentScan;
-void hardwareDevice::setNewScan(scanStruct scan) {hardwareDevice::currentScan = scan;}
+void hardwareDevice::setNewScan(msa::scanStruct scan) {
+	msa::getInstance().currentScan = scan;
+}
 
 hardwareDevice::hardwareDevice(QObject *parent):QObject(parent), registerSize(0)
 {
@@ -72,7 +74,7 @@ QString hardwareDevice::convertToStr(quint64 *reg)
 	QString ret = "000000000000000000000";
 	quint64 temp = 0;
 	int i = 0;
-
+	qDebug() << value;
 	for(i = 0; i < 20; ++i) {
 		temp = (quint64)(value / 2);
 		quint64 temp2 = value - 2*temp;

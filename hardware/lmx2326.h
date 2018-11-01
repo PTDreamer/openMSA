@@ -17,7 +17,7 @@ class lmx2326: public genericPLL
 {
 	Q_OBJECT
 public:
-	lmx2326(hardwareDevice::MSAdevice device, QObject *parent);
+	lmx2326(msa::MSAdevice device, QObject *parent);
 
 	clockType getClk_type() const;
 	void processNewScan();

@@ -30,6 +30,7 @@
 #include <QBitArray>
 #include <limits>
 #include <QObject>
+#include "msa.h"
 
 #define HW_INIT_STEP std::numeric_limits<quint32>::max()
 #define SCAN_INIT_STEP HW_INIT_STEP-1
@@ -39,42 +40,8 @@ class hardwareDevice:public QObject
 {
 	Q_OBJECT
 public:
-	typedef enum {LMX2326, AD9850, AD7685, LT1865} HWdevice;
-	typedef enum {PLL1, PLL2, PLL3, DDS1, DDS3, ADC_MAG, ADC_PH} MSAdevice;
-	typedef enum {SA, SA_TG, SA_SG, VNA} scanType_t;
-	typedef struct {
-		double translatedFrequency;
-		double realFrequency;
-		double LO1;
-		double LO3;
-		int band;
-	} scanStep;
-	typedef struct {
-		double baseFrequency;
-		double LO2; // from configuration
-		double finalFilterFrequency; //final filter frequency;
-		double finalFilterBandwidth; //final filter bandwidth;
-		double TGoffset; //tracking generator offset
-		bool   TGreversed;
-		double SGout; //signal generator output frequency
-		double appxdds1; // center freq. of DDS1 xtal filter; exact value determined in calibration
-		double appxdds3; // center freq. of DDS3 xtal filter; exact value determined in calibration
-		double dds3Filterbandwidth;
-		double dds1Filterbandwidth;
-		double PLL1phasefreq; // from configuration default=0.974
-		double PLL2phasefreq; // 4
-		double PLL3phasefreq; // from configuration default=0.974
-		double masterOscilatorFrequency;
-		uint8_t adcAveraging;
-		scanType_t scanType;
-	} scanConfig;
-
-	typedef struct {
-		scanConfig configuration;
-		QHash<quint32, scanStep> steps;
-	} scanStruct;
-
 	hardwareDevice(QObject *parent);
+	typedef enum {LMX2326, AD9850, AD7685, LT1865} HWdevice;
 	typedef enum {MAIN_DATA, GEN_INPUT, GEN_OUTPUT, INPUT_OUTPUT, CLK, VIRTUAL_CLK}pinType;
 	typedef enum {CLOCK_RISING_EDGE, CLOCK_FALLING_EDGE}clockType;
 	typedef struct {
@@ -95,10 +62,9 @@ public:
 	// gets the pins list of the device, containing the name (string), type (input, output or both) and dataarray
 	virtual const QHash<int, devicePin *> getDevicePins();
 	~hardwareDevice();
-	static scanStruct currentScan;
 	QHash<int, devicePin*> devicePins;
 	HWdevice getHardwareType();
-	static void setNewScan(scanStruct scan);
+	static void setNewScan(msa::scanStruct scan);
 	QList<int> getInitIndexes(){return initIndexes;}
 protected:
 	typedef struct {

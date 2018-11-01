@@ -140,11 +140,11 @@ void slimusb::commandNextStep()
 {
 	commandStep(currentStep);
 	QThread::usleep(writeReadDelay_us);
-	if(!isInverted)
+	if(!msa::getInstance().getIsInverted())
 		++currentStep;
 	if(currentStep > (qint32)(numberOfSteps - 1))
 		currentStep = 0;
-	if(isInverted)
+	if(msa::getInstance().getIsInverted())
 		--currentStep;
 	if(currentStep < 0)
 		currentStep = numberOfSteps -1;
@@ -152,9 +152,9 @@ void slimusb::commandNextStep()
 
 void slimusb::commandPreviousStep()
 {
-	if(!isInverted)
+	if(!msa::getInstance().getIsInverted())
 		--currentStep;
-	if(isInverted)
+	if(msa::getInstance().getIsInverted())
 		++currentStep;
 	if(currentStep > (qint32)(numberOfSteps - 1))
 		currentStep = 0;
@@ -164,12 +164,11 @@ void slimusb::commandPreviousStep()
 	QThread::usleep(writeReadDelay_us);
 }
 
-void slimusb::initScan(bool inverted, double start, double end, double step, int band)
+void slimusb::initScan()
 {
-	Q_UNUSED(band);
 	QList<hardwareDevice::devicePin*> dataPins;
 	int maxSize = 0;
-	interface::initScan(inverted, start, end, step);
+	interface::initScan();
 	pll1->processNewScan();
 	dds1->processNewScan();
 	pll3->processNewScan();
@@ -186,7 +185,7 @@ void slimusb::initScan(bool inverted, double start, double end, double step, int
 		}
 	}
 	int delta;
-	for(int step = 0; step < hardwareDevice::currentScan.steps.size(); ++step) {
+	for(int step = 0; step < msa::getInstance().currentScan.steps.size(); ++step) {
 		QByteArray *arr = new QByteArray;
 		usbData.insert(step, arr);
 		for(int b = 0; b < maxSize; ++b) {
@@ -207,7 +206,7 @@ void slimusb::initScan(bool inverted, double start, double end, double step, int
 		}
 	}
 	adcSend.clear();
-	if(hardwareDevice::currentScan.configuration.scanType != hardwareDevice::VNA) {
+	if(msa::getInstance().currentScan.configuration.scanType != msa::VNA) {
 		adcSend.append(0xB2);//TODO
 	}
 	else
@@ -220,21 +219,21 @@ void slimusb::initScan(bool inverted, double start, double end, double step, int
 	else {
 		adcSend.append(0x01);adcSend.append(0x03);adcSend.append(0x0C);
 	}
-	adcSend.append(hardwareDevice::currentScan.configuration.adcAveraging);
+	adcSend.append(msa::getInstance().currentScan.configuration.adcAveraging);
 }
 
 void slimusb::hardwareInit()
 {
 	interface::hardwareInit();
-	QHash<hardwareDevice::MSAdevice, hardwareDevice *> loadedDevices = msa::getInstance().currentHardwareDevices;
+	QHash<msa::MSAdevice, hardwareDevice *> loadedDevices = msa::getInstance().currentHardwareDevices;
 	foreach(hardwareDevice* dev, loadedDevices.values()) {
-		if((loadedDevices.key(dev) == hardwareDevice::PLL1) || (loadedDevices.key(dev) == hardwareDevice::PLL2) || (loadedDevices.key(dev) == hardwareDevice::PLL3)) {
+		if((loadedDevices.key(dev) == msa::PLL1) || (loadedDevices.key(dev) == msa::PLL2) || (loadedDevices.key(dev) == msa::PLL3)) {
 			genericPLL *pll = qobject_cast<genericPLL*>(dev);
-			if(loadedDevices.key(dev) == hardwareDevice::PLL1)
+			if(loadedDevices.key(dev) == msa::PLL1)
 				pll1 = pll;
-			if(loadedDevices.key(dev) == hardwareDevice::PLL2)
+			if(loadedDevices.key(dev) == msa::PLL2)
 				pll2 = pll;
-			if(loadedDevices.key(dev) == hardwareDevice::PLL3)
+			if(loadedDevices.key(dev) == msa::PLL3)
 				pll3 = pll;
 			QHash<int, hardwareDevice::devicePin*> pllpins = pll->getDevicePins();
 			hardwareDevice::devicePin *pin;
@@ -245,17 +244,17 @@ void slimusb::hardwareInit()
 				switch (type) {
 				case lmx2326::PIN_DATA:
 					switch (loadedDevices.key(dev)) {
-					case hardwareDevice::PLL1:
+					case msa::PLL1:
 						p->latch = 1;
 						p->pin = 1;
 						pll1data = p;
 						break;
-					case hardwareDevice::PLL2:
+					case msa::PLL2:
 						p->latch = 1;
 						p->pin = 4;
 						pll2data = p;
 						break;
-					case hardwareDevice::PLL3:
+					case msa::PLL3:
 						p->latch = 1;
 						p->pin = 3;
 						pll3data = p;
@@ -271,15 +270,15 @@ void slimusb::hardwareInit()
 				case lmx2326::PIN_LE:
 					p->latch = 2;
 					switch (loadedDevices.key(dev)) {
-					case hardwareDevice::PLL1:
+					case msa::PLL1:
 						p->pin = 0;
 						pll1le = p;
 						break;
-					case hardwareDevice::PLL2:
+					case msa::PLL2:
 						p->pin = 4;
 						pll2le = p;
 						break;
-					case hardwareDevice::PLL3:
+					case msa::PLL3:
 						p->pin = 2;
 						pll3le = p;
 						break;
@@ -299,11 +298,11 @@ void slimusb::hardwareInit()
 			}
 
 		}
-		else if((loadedDevices.key(dev) == hardwareDevice::DDS1) || (loadedDevices.key(dev) == hardwareDevice::DDS3)) {
+		else if((loadedDevices.key(dev) == msa::DDS1) || (loadedDevices.key(dev) == msa::DDS3)) {
 			genericDDS *dds = qobject_cast<genericDDS*>(dev);
-			if(loadedDevices.key(dev) == hardwareDevice::DDS1)
+			if(loadedDevices.key(dev) == msa::DDS1)
 				dds1 = dds;
-			else if(loadedDevices.key(dev) == hardwareDevice::DDS3)
+			else if(loadedDevices.key(dev) == msa::DDS3)
 				dds3 = dds;
 			QHash<int, hardwareDevice::devicePin*> ddspins = dds->getDevicePins();
 			hardwareDevice::devicePin *pin;
@@ -314,12 +313,12 @@ void slimusb::hardwareInit()
 				switch (type) {
 				case ad9850::PIN_DATA:
 					switch (loadedDevices.key(dev)) {
-					case hardwareDevice::DDS1:
+					case msa::DDS1:
 						p->latch = 1;
 						p->pin = 2;
 						dds1data = p;
 						break;
-					case hardwareDevice::DDS3:
+					case msa::DDS3:
 						p->latch = 1;
 						p->pin = 4;
 						dds3data = p;
@@ -330,8 +329,8 @@ void slimusb::hardwareInit()
 					break;
 				case ad9850::PIN_WCLK:
 					switch (loadedDevices.key(dev)) {
-					case hardwareDevice::DDS1:
-					case hardwareDevice::DDS3:
+					case msa::DDS1:
+					case msa::DDS3:
 						p->latch = 1;
 						p->pin = 0;
 						break;
@@ -341,13 +340,13 @@ void slimusb::hardwareInit()
 					break;
 				case ad9850::PIN_FQUD:
 					switch (loadedDevices.key(dev)) {
-					case hardwareDevice::DDS1:
+					case msa::DDS1:
 						p->latch = 2;
 						p->pin = 1;
 						dds1fqu = p;
 						break;
 					case ad9850::PIN_FQUD:
-					case hardwareDevice::DDS3:
+					case msa::DDS3:
 						p->latch = 2;
 						p->pin = 3;
 						dds3fqu = p;
@@ -368,11 +367,11 @@ void slimusb::hardwareInit()
 				pin->hwconfig = p;
 			}
 		}
-		else if((loadedDevices.key(dev) == hardwareDevice::ADC_MAG) || (loadedDevices.key(dev) == hardwareDevice::ADC_PH)) {
+		else if((loadedDevices.key(dev) == msa::ADC_MAG) || (loadedDevices.key(dev) == msa::ADC_PH)) {
 			genericADC *adc = qobject_cast<genericADC*>(dev);
-			if(loadedDevices.key(dev) == hardwareDevice::ADC_MAG)
+			if(loadedDevices.key(dev) == msa::ADC_MAG)
 				adcmag = adc;
-			else if(loadedDevices.key(dev) == hardwareDevice::ADC_PH)
+			else if(loadedDevices.key(dev) == msa::ADC_PH)
 				adcph = adc;
 			QHash<int, hardwareDevice::devicePin*> adcpins = adc->getDevicePins();
 			hardwareDevice::devicePin *pin;
@@ -383,11 +382,11 @@ void slimusb::hardwareInit()
 				switch (type) {
 				case genericADC::PIN_DATA:
 					switch (loadedDevices.key(dev)) {
-					case hardwareDevice::ADC_MAG:
+					case msa::ADC_MAG:
 						p->latch = 0;
 						p->pin = 4;
 						break;
-					case hardwareDevice::ADC_PH:
+					case msa::ADC_PH:
 						p->latch = 0;
 						p->pin = 5;
 						break;
@@ -397,8 +396,8 @@ void slimusb::hardwareInit()
 					break;
 				case genericADC::PIN_CLK:
 					switch (loadedDevices.key(dev)) {
-					case hardwareDevice::ADC_MAG:
-					case hardwareDevice::ADC_PH:
+					case msa::ADC_MAG:
+					case msa::ADC_PH:
 						p->latch = 3;
 						p->pin = 6;
 						break;
@@ -408,8 +407,8 @@ void slimusb::hardwareInit()
 					break;
 				case genericADC::PIN_CONVERT:
 					switch (loadedDevices.key(dev)) {
-					case hardwareDevice::ADC_MAG:
-					case hardwareDevice::ADC_PH:
+					case msa::ADC_MAG:
+					case msa::ADC_PH:
 						p->latch = 3;
 						p->pin = 7;
 						break;
@@ -432,7 +431,7 @@ void slimusb::hardwareInit()
 	if(pll1) {
 		switch (pll1->getHardwareType()) {
 		case hardwareDevice::LMX2326:
-			pll1array = deviceParser::getDeviceList().value(hardwareDevice::PLL1)->devicePins.value(lmx2326::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
+			pll1array = msa::getInstance().currentHardwareDevices.value(msa::PLL1)->devicePins.value(lmx2326::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
 			break;
 		default:
 			break;
@@ -441,7 +440,7 @@ void slimusb::hardwareInit()
 	if(dds1) {
 		switch (dds1->getHardwareType()) {
 		case hardwareDevice::AD9850:
-			dds1array = deviceParser::getDeviceList().value(hardwareDevice::DDS1)->devicePins.value(ad9850::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
+			dds1array = msa::getInstance().currentHardwareDevices.value(msa::DDS1)->devicePins.value(ad9850::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
 			break;
 		default:
 			break;
@@ -450,7 +449,7 @@ void slimusb::hardwareInit()
 	if(pll2) {
 		switch (pll2->getHardwareType()) {
 		case hardwareDevice::LMX2326:
-			pll2array = deviceParser::getDeviceList().value(hardwareDevice::PLL2)->devicePins.value(lmx2326::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
+			pll2array = msa::getInstance().currentHardwareDevices.value(msa::PLL2)->devicePins.value(lmx2326::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
 			break;
 		default:
 			break;
@@ -459,7 +458,7 @@ void slimusb::hardwareInit()
 	if(pll3) {
 		switch (pll3->getHardwareType()) {
 		case hardwareDevice::LMX2326:
-			pll3array = deviceParser::getDeviceList().value(hardwareDevice::PLL3)->devicePins.value(lmx2326::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
+			pll3array = msa::getInstance().currentHardwareDevices.value(msa::PLL3)->devicePins.value(lmx2326::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
 			break;
 		default:
 			break;
@@ -468,7 +467,7 @@ void slimusb::hardwareInit()
 	if(dds3) {
 		switch (dds3->getHardwareType()) {
 		case hardwareDevice::AD9850:
-			dds3array = deviceParser::getDeviceList().value(hardwareDevice::DDS3)->devicePins.value(ad9850::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
+			dds3array = msa::getInstance().currentHardwareDevices.value(msa::DDS3)->devicePins.value(ad9850::PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
 			break;
 		default:
 			break;
@@ -529,11 +528,11 @@ void slimusb::run()
 			return;
 		}
 		commandStep(currentStep);
-		if(!isInverted)
+		if(!msa::getInstance().getIsInverted())
 			++currentStep;
 		if(currentStep > (qint32)(numberOfSteps - 1))
 			currentStep = 0;
-		if(isInverted)
+		if(msa::getInstance().getIsInverted())
 			--currentStep;
 		if(currentStep < 0)
 			currentStep = numberOfSteps -1;

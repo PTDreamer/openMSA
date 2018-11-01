@@ -25,7 +25,7 @@
  */
 #include "genericadc.h"
 
-genericADC::genericADC(hardwareDevice::MSAdevice device, hardwareDevice::HWdevice type, QObject *parent): hardwareDevice(parent), adc_type(type)
+genericADC::genericADC(msa::MSAdevice device, hardwareDevice::HWdevice type, QObject *parent): hardwareDevice(parent), adc_type(type)
 {
 	registerSize = 40;
 	parser = new deviceParser(device, this);

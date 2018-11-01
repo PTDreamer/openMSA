@@ -38,16 +38,16 @@ MainWindow::MainWindow(QWidget *parent) :
 //	s.openDevice(3);
 	slimusb *s = new slimusb(this);
 	connect(s, SIGNAL(dataReady(int,double,double)), this, SLOT(dataReady(int, double, double)));
-	QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices;
-	devices.insert(hardwareDevice::PLL1, hardwareDevice::LMX2326);
-	devices.insert(hardwareDevice::PLL2, hardwareDevice::LMX2326);
-	devices.insert(hardwareDevice::DDS1, hardwareDevice::AD9850);
-	devices.insert(hardwareDevice::PLL3, hardwareDevice::LMX2326);
-	devices.insert(hardwareDevice::DDS3, hardwareDevice::AD9850);
-	devices.insert(hardwareDevice::ADC_MAG, hardwareDevice::AD7685);
-	devices.insert(hardwareDevice::ADC_PH, hardwareDevice::AD7685);
+	QHash<msa::MSAdevice, int> devices;
+	devices.insert(msa::PLL1, hardwareDevice::LMX2326);
+	devices.insert(msa::PLL2, hardwareDevice::LMX2326);
+	devices.insert(msa::DDS1, hardwareDevice::AD9850);
+	devices.insert(msa::PLL3, hardwareDevice::LMX2326);
+	devices.insert(msa::DDS3, hardwareDevice::AD9850);
+	devices.insert(msa::ADC_MAG, hardwareDevice::AD7685);
+	devices.insert(msa::ADC_PH, hardwareDevice::AD7685);
 	s->init(3);
-	hardwareDevice::scanConfig config;
+	msa::scanConfig config;
 	config.LO2 = 1024;
 	config.appxdds1 = 10.7;
 	config.appxdds3 = 10.7;
@@ -57,7 +57,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	config.PLL3phasefreq = 0.974;
 	config.finalFilterFrequency = 10.7;
 	config.masterOscilatorFrequency = 64;
-	config.scanType = hardwareDevice::SA;
+	config.scanType = msa::SA_TG;
 	config.adcAveraging = 2;
 	config.dds1Filterbandwidth = 0.015;
 	config.dds3Filterbandwidth = 0.015;
@@ -65,9 +65,9 @@ MainWindow::MainWindow(QWidget *parent) :
 	config.TGreversed = false;
 	config.finalFilterBandwidth = 0.015;
 	config.SGout = 0;
-	s->setScanConfiguration(config);
+	msa::getInstance().setScanConfiguration(config);
 	msa::getInstance().hardwareInit(devices, s);
-	s->initScan(false, -0.075, 0.075, 0.15/400);
+	msa::getInstance().initScan(false, -0.075, 0.075, 0.15/400);
 	s->autoScan();
 }
 
