@@ -91,16 +91,13 @@ hardwareDevice::clockType lmx2326::getClk_type() const
 
 void lmx2326::processNewScan()
 {
-	//rcounter = appxdds1/PLL1phasefreq
-	//appxdds1 = rcounter * PLL1phasefreq
-	//
-	//fvco e [(32 x B) + A] x fosc/R(11)
-
-
+	double ncounter = 0;
+	double Bcounter = 0;
+	double Acounter = 0;
 	foreach (int step, currentScan.steps.keys()) {
-		double ncounter = parser->parsePLLNCounter(currentScan.configuration, currentScan.steps[step],step);
-		double Bcounter = floor(ncounter/32);
-		double Acounter = round(ncounter-(Bcounter*32));
+		ncounter = parser->parsePLLNCounter(currentScan.configuration, currentScan.steps[step],step);
+		Bcounter = floor(ncounter/32);
+		Acounter = round(ncounter-(Bcounter*32));
 		setFieldRegister(N_ACOUNTER_DIVIDER, Acounter);
 		setFieldRegister(N_BCOUNTER_DIVIDER, Bcounter);
 		setFieldRegister(N_CC, (int)control_field::NCOUNTER);
@@ -150,9 +147,23 @@ bool lmx2326::init()
 	registerToBuffer(&s.rcounter, PIN_DATA, HW_INIT_STEP -1);
 	qDebug() << "LMX2326 SCAN_INIT_STEP rcounter:" << convertToStr(&s.rcounter) << rcounter;
 	qDebug() << "LMX2326 SCAN_INIT_STEP PIN_DATA dataArray:" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP-1).dataArray;
-	addLEandCLK(HW_INIT_STEP-1);
+	addLEandCLK(HW_INIT_STEP - 1);
 
 	initIndexes.append(HW_INIT_STEP - 1);
+
+	double ncounter = parser->parsePLLNCounter(currentScan.configuration, currentScan.steps[HW_INIT_STEP],HW_INIT_STEP);
+	if(ncounter > 0) {
+		double Bcounter = floor(ncounter/32);
+		double Acounter = round(ncounter-(Bcounter*32));
+		qDebug() << "PLL2 Acounter" << Acounter << "Bcounter" << Bcounter;
+		setFieldRegister(N_ACOUNTER_DIVIDER, Acounter);
+		setFieldRegister(N_BCOUNTER_DIVIDER, Bcounter);
+		setFieldRegister(N_CC, (int)control_field::NCOUNTER);
+		setFieldRegister(N_CPGAIN_BIT, (int)cp_gain::HIGH);//Phase Det Current, 1= 1 ma, 0= 250 ua
+		registerToBuffer(&s.ncounter, PIN_DATA, HW_INIT_STEP-2);
+		addLEandCLK(HW_INIT_STEP - 2);
+		initIndexes.append(HW_INIT_STEP - 2);
+	}
 	return true;
 }
 

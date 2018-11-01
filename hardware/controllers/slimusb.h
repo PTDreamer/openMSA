@@ -51,7 +51,7 @@ public:
 	bool getAutoConnect() const;
 	void setAutoConnect(bool value);
 	bool getIsConnected() const;
-	void initScan(bool inverted, double start, double end, double step);
+	void initScan(bool inverted, double start, double end, double step, int band = -1);
 	void hardwareInit(QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices);
 	unsigned long getWriteReadDelay_us() const;
 	void setWriteReadDelay_us(unsigned long value);
@@ -68,6 +68,22 @@ public slots:
 signals:
 
 private:
+	typedef struct {
+		char last_command_processed;
+		char flags; //No meaningful data yet (not coded anything so far here)
+		char port_A;
+		char port_B;
+		char port_C;
+		char port_D;
+		char port_E;
+		char number_of_ADC_results;
+		quint32 adcMAG;
+		quint32 adcPhase;
+	} usbB2command;
+	union {
+		usbB2command command;
+		unsigned char data[16];
+	} usbB2union;
 	usbdevice usb;
 	typedef struct {
 		uint8_t latch;
@@ -77,6 +93,7 @@ private:
 	QHash<hardwareDevice::MSAdevice, QHash<hardwareDevice::HWdevice, parallelEqui>> pinMapping;
 	bool autoConnect;
 	QVector<uint8_t> currentLatchValue;
+	bool singleStep;
 	parallelEqui *pll1data;
 	parallelEqui *pll1le;
 	parallelEqui *dds1data;
@@ -99,6 +116,7 @@ private:
 	genericADC *adcmag;
 	genericADC *adcph;
 	QBitArray *pll1array;
+	QBitArray *pll3array;
 	QBitArray *dds1array;
 	QBitArray *pll2array;
 	QBitArray *dds3array;
@@ -113,9 +131,7 @@ private:
 	void printUSBData(int step);
 	unsigned long writeReadDelay_us;
 	bool isPaused;
-	bool singleStep;
 	QByteArray adcSend;
-	QByteArray adcReceive;
 	int expectedAdcSize;
 };
 

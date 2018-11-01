@@ -34,10 +34,11 @@ class interface: public QThread
 	Q_OBJECT
 public:
 	interface(QObject *parent);
+	~interface();
 protected slots:
 	virtual void commandNextStep() = 0;
 	virtual void commandPreviousStep() = 0;
-	virtual void initScan(bool inverted, double start, double end, double step);
+	virtual void initScan(bool inverted, double start, double end, double step, int band = -1);
 	virtual void autoScan() = 0;
 	virtual void pauseScan() = 0;
 	virtual void resumeScan() = 0;
@@ -53,6 +54,7 @@ signals:
 	void disconnected();
 protected:
 	qint32 currentStep;
+	qint32 lastCommandedStep;
 	bool isInverted;
 	quint32 numberOfSteps;
 private:

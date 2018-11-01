@@ -66,10 +66,13 @@ ad9850::ad9850(hardwareDevice::MSAdevice device, QObject *parent) : genericDDS(p
 
 void ad9850::processNewScan()
 {
+	bool error; //TODO CHECK ERRORS
 	foreach (int step, currentScan.steps.keys()) {
-		quint32 base = parser->parseDDSOutput(currentScan.configuration, step);
-		setFieldRegister(FIELD_FREQUENCY, base);
-		registerToBuffer(&deviceRegister, PIN_DATA, step);
+		quint32 base = parser->parseDDSOutput(currentScan.configuration, step, error);
+		if(!error) {
+			setFieldRegister(FIELD_FREQUENCY, base);
+			registerToBuffer(&deviceRegister, PIN_DATA, step);
+		}
 	}
 //	foreach(int x, devicePins.value(PIN_DATA)->data.keys()) {
 //		QBitArray *arr = devicePins.value(PIN_DATA)->data.value(x).dataArray;

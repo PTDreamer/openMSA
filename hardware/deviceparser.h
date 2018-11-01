@@ -37,7 +37,7 @@ public:
 	deviceParser(hardwareDevice::MSAdevice dev, hardwareDevice *parent);
 	double parsePLLRCounter(hardwareDevice::scanConfig config);
 	double parsePLLNCounter(hardwareDevice::scanConfig configuration, hardwareDevice::scanStep &step, int stepNumber);
-	quint32 parseDDSOutput(hardwareDevice::scanConfig configuration, int stepNumber);
+	quint32 parseDDSOutput(hardwareDevice::scanConfig configuration, int stepNumber, bool &error);
 	static const QHash<hardwareDevice::MSAdevice, hardwareDevice *> getDeviceList();
 	hardwareDevice::HWdevice getDeviceType() {return hwdev;}
 	~deviceParser();

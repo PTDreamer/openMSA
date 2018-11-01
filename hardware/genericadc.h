@@ -37,6 +37,7 @@ public:
 	bool init();
 	void reinit(){}
 	bool checkSettings(){return true;}
+	hardwareDevice::HWdevice getHardwareType() {return adc_type;}
 	// gets the type of CLK this device needs, dedicated or system wide
 	clockType getClk_type() const;
 	typedef enum {PIN_DATA, PIN_CONVERT, PIN_CLK, PIN_VIRTUAL_CLOCK} pins;

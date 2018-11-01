@@ -48,7 +48,7 @@ genericADC::genericADC(hardwareDevice::MSAdevice device, hardwareDevice::HWdevic
 
 bool genericADC::init()
 {
-
+	return true;
 }
 
 hardwareDevice::clockType genericADC::getClk_type() const

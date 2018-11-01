@@ -5,6 +5,7 @@
 #include "hardware/hardwaredevice.h"
 #include "hardware/ad9850.h"
 #include "hardware/controllers/slimusb.h"
+#include "hardware/msa.h"
 
 MainWindow::MainWindow(QWidget *parent) :
 	QMainWindow(parent),
@@ -36,25 +37,38 @@ MainWindow::MainWindow(QWidget *parent) :
 //	qDebug() << "--"<< s.getDevices().at(0).serial<< s.getDevices().at(0).deviceNumber;
 //	s.openDevice(3);
 	slimusb *s = new slimusb(this);
+	connect(s, SIGNAL(dataReady(int,double,double)), this, SLOT(dataReady(int, double, double)));
 	QHash<hardwareDevice::MSAdevice, hardwareDevice::HWdevice> devices;
 	devices.insert(hardwareDevice::PLL1, hardwareDevice::LMX2326);
+	devices.insert(hardwareDevice::PLL2, hardwareDevice::LMX2326);
 	devices.insert(hardwareDevice::DDS1, hardwareDevice::AD9850);
+	devices.insert(hardwareDevice::PLL3, hardwareDevice::LMX2326);
+	devices.insert(hardwareDevice::DDS3, hardwareDevice::AD9850);
 	devices.insert(hardwareDevice::ADC_MAG, hardwareDevice::AD7685);
 	devices.insert(hardwareDevice::ADC_PH, hardwareDevice::AD7685);
 	s->init(3);
 	hardwareDevice::scanConfig config;
 	config.LO2 = 1024;
 	config.appxdds1 = 10.7;
+	config.appxdds3 = 10.7;
 	config.baseFrequency = 0;
 	config.PLL1phasefreq = 0.974;
-	config.finalFrequency = 10.7;
+	config.PLL2phasefreq = 4;
+	config.PLL3phasefreq = 0.974;
+	config.finalFilterFrequency = 10.7;
 	config.masterOscilatorFrequency = 64;
 	config.scanType = hardwareDevice::SA;
 	config.adcAveraging = 2;
+	config.dds1Filterbandwidth = 0.015;
+	config.dds3Filterbandwidth = 0.015;
+	config.TGoffset = 0;
+	config.TGreversed = false;
+	config.finalFilterBandwidth = 0.015;
+	config.SGout = 0;
 	s->setScanConfiguration(config);
 	s->hardwareInit(devices);
 	s->initScan(false, -0.075, 0.075, 0.15/400);
-	//s->autoScan();
+	s->autoScan();
 }
 
 MainWindow::~MainWindow()
@@ -64,5 +78,10 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()
 {
+}
+
+void MainWindow::dataReady(int step, double mag, double phase)
+{
+	qDebug() << "received step:" << step << "MAG=" << mag << "PHASE=" << phase;
 }
 

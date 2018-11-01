@@ -32,7 +32,8 @@ SOURCES += main.cpp\
     hardware/controllers/slimusb.cpp \
     hardware/controllers/interface.cpp \
     hardware/controllers/usbdevice.cpp \
-    hardware/genericadc.cpp
+    hardware/genericadc.cpp \
+    hardware/msa.cpp
 
 HEADERS  += mainwindow.h \
     hardware/lmx2326.h \
@@ -43,7 +44,8 @@ HEADERS  += mainwindow.h \
     hardware/controllers/slimusb.h \
     hardware/controllers/interface.h \
     hardware/controllers/usbdevice.h \
-    hardware/genericadc.h
+    hardware/genericadc.h \
+    hardware/msa.h
 
 FORMS   += mainwindow.ui
 LIBS	+= -L./lib -lusb-1.0

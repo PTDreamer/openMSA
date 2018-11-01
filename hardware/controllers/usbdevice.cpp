@@ -29,7 +29,7 @@ libusb_device_handle *usbdevice::deviceHandler = NULL;
 
 usbdevice::usbdevice(QObject *parent) : QObject(parent),devs(NULL)
 {
-
+	connect(this, SIGNAL(closeWorker), &worker, SLOT(quit()));
 }
 
 bool usbdevice::init(int debugLevel)
@@ -46,12 +46,16 @@ bool usbdevice::init(int debugLevel)
 
 usbdevice::~usbdevice()
 {
-	if(deviceHandler)
+	enableCallBack(false);
+	worker.wait(1000);
+	if(deviceHandler) {
 		libusb_close(deviceHandler);
+		qDebug() << "closing device";
+	}
 	libusb_free_device_list(devs, 1); //free the list, unref the devices in it
 	libusb_exit(ctx);
-	enableCallBack(false);
-	worker.wait(10000);
+	qDebug()<< "end destructor";
+	delete w;
 }
 
 bool usbdevice::openDevice(int deviceNumber)
@@ -215,7 +219,7 @@ int usbdevice::enableCallBack(bool enable)
 	return true;
 }
 
-bool usbdevice::sendArray(QByteArray data, QByteArray receivedData, int expectedSize) {
+bool usbdevice::sendArray(QByteArray data, unsigned char* receivedData, int expectedSize) {
 	if(!usbdevice::deviceHandler) {
 		return false;
 	}
@@ -223,23 +227,33 @@ bool usbdevice::sendArray(QByteArray data, QByteArray receivedData, int expected
 	int r = libusb_bulk_transfer(deviceHandler, (2 | LIBUSB_ENDPOINT_OUT), reinterpret_cast<unsigned char*>(data.data()), data.size(), &actual, 0);
 	if(r != 0)
 	{
+		if(usbdevice::deviceHandler)
+			libusb_close(usbdevice::deviceHandler);
 		usbdevice::deviceHandler = NULL;
+		qDebug() << "NOT reveived ADC2";
 		emit disconnected();
 		return false;
 	}
 	for(int x = 0; x < 10; ++x) {
-		r = libusb_bulk_transfer(deviceHandler, (6 | LIBUSB_ENDPOINT_IN), reinterpret_cast<unsigned char*>(receivedData.data()), receivedData.size(), &actual, 0);
+		r = libusb_bulk_transfer(deviceHandler, (6 | LIBUSB_ENDPOINT_IN), receivedData, expectedSize, &actual, 0);
 		if(r != 0)
 		{
+			if(usbdevice::deviceHandler)
+				libusb_close(usbdevice::deviceHandler);
 			usbdevice::deviceHandler = NULL;
 			emit disconnected();
+			qDebug() << "NOT reveived ADC2" << r;
+			Q_ASSERT(false);
 			return false;
 		}
-		if(actual == expectedSize) {
+		else if(actual == expectedSize) {
 			return true;
 		}
+		else if(x > 5)
+			qDebug() << "actual" << actual << "expected" << expectedSize;
 	}
-	return true;
+	qDebug() << "NOT reveived ADC3";
+	return false;
 }
 
 bool usbdevice::sendArray(QByteArray data)
@@ -250,6 +264,8 @@ bool usbdevice::sendArray(QByteArray data)
 	int r = libusb_bulk_transfer(deviceHandler, (2 | LIBUSB_ENDPOINT_OUT), reinterpret_cast<unsigned char*>(data.data()), data.size(), &actual, 0);
 	if(r != 0)
 	{
+		if(usbdevice::deviceHandler)
+			libusb_close(usbdevice::deviceHandler);
 		usbdevice::deviceHandler = NULL;
 		emit disconnected();
 		return false;
@@ -321,4 +337,5 @@ void hotplugWorker::doWork(libusb_context *context)
 void hotplugWorker::quit()
 {
 	 run = false;
+	 qDebug() << "QUIT";
 }

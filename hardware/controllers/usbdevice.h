@@ -72,7 +72,7 @@ public:
 	static libusb_device_handle *deviceHandler;
 	bool isConnected() {return usbdevice::deviceHandler != NULL;}
 	bool sendArray(QByteArray data);
-	bool sendArray(QByteArray data, QByteArray receivedData, int expectedSize);
+	bool sendArray(QByteArray data, unsigned char *receivedData, int expectedSize);
 protected:
 
 private:
@@ -89,6 +89,7 @@ signals:
 	void disconnected();
 	void connected();
 	void startHotplugCallback(libusb_context*);
+	void closeWorker();
 public slots:
 };
 

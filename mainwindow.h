@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include "hardware/lmx2326.h"
 #include "hardware/controllers/slimusb.h"
+#include <QDebug>
 
 namespace Ui {
 class MainWindow;
@@ -19,7 +20,7 @@ public:
 
 private slots:
 	void on_pushButton_clicked();
-
+	void dataReady(int, double, double);
 private:
 	Ui::MainWindow *ui;
 };

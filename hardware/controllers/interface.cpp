@@ -36,16 +36,60 @@ interface::interface(QObject *parent):QThread(parent)
 	hardwareDevice::currentScan.configuration.appxdds1 = 10.7;
 	hardwareDevice::currentScan.configuration.baseFrequency = 0;
 	hardwareDevice::currentScan.configuration.PLL1phasefreq = 0.974;
-	hardwareDevice::currentScan.configuration.finalFrequency = 10.7;
+	hardwareDevice::currentScan.configuration.finalFilterFrequency = 10.7;
 	hardwareDevice::currentScan.configuration.masterOscilatorFrequency = 64;
 }
 
-void interface::initScan(bool inverted, double start, double end, double step)
+interface::~interface()
+{
+	foreach (hardwareDevice *dev, currentHardwareDevices) {
+		foreach (hardwareDevice::devicePin *pin, dev->devicePins.values()) {
+			foreach (hardwareDevice::pin_data data, pin->data.values()) {
+				if(data.dataArray)
+					delete data.dataArray;
+				if(data.dataMask)
+					delete data.dataMask;
+			}
+		}
+		qDeleteAll(dev->devicePins);
+	}
+	qDeleteAll(currentHardwareDevices);
+}
+
+void interface::initScan(bool inverted, double start, double end, double step, int band)
 {
 	int steps = (end - start) / step;
+	int thisBand = 0;
+	int bandSelect = 0;
 	for(int x = 0; x < steps; ++x) {
 		hardwareDevice::scanStep s;
-		s.frequency = start + (x * step);
+		s.realFrequency = start + (x * step);
+		if(band < 0) {
+			if(s.realFrequency < 1000)
+				thisBand = 1;
+			else if(s.realFrequency < 2000)
+				thisBand = 2;
+			else
+				thisBand = 3;
+		}
+		s.translatedFrequency = s.realFrequency;
+		double IF1;
+		if(band < 0)
+			bandSelect = thisBand;
+		else
+			bandSelect = band;
+		switch (bandSelect) {
+		case 2:
+			s.translatedFrequency = s.translatedFrequency - hardwareDevice::currentScan.configuration.LO2;
+			break;
+		case 3:
+			IF1 = hardwareDevice::currentScan.configuration.LO2 - hardwareDevice::currentScan.configuration.finalFilterFrequency;
+			s.translatedFrequency = s.translatedFrequency - 2*IF1;
+			break;
+		default:
+			break;
+		}
+		s.band = bandSelect;
 		hardwareDevice::currentScan.steps.insert(x, s);
 	}
 	isInverted = inverted;

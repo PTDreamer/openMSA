@@ -29,7 +29,7 @@
 hardwareDevice::scanStruct hardwareDevice::currentScan;
 void hardwareDevice::setNewScan(scanStruct scan) {hardwareDevice::currentScan = scan;}
 
-hardwareDevice::hardwareDevice(QObject *parent):QObject(parent)
+hardwareDevice::hardwareDevice(QObject *parent):QObject(parent), registerSize(0)
 {
 }
 
@@ -40,13 +40,7 @@ const QHash<int, hardwareDevice::devicePin*>  hardwareDevice::getDevicePins()
 
 hardwareDevice::~hardwareDevice()
 {
-	foreach (devicePin *pin, devicePins.values()) {
-		foreach (pin_data d, pin->data.values()) {
-			delete d.dataArray;
-			delete d.dataMask;
-		}
-	}
-	qDeleteAll(devicePins);
+
 }
 
 hardwareDevice::HWdevice hardwareDevice::getHardwareType()
@@ -76,14 +70,16 @@ QString hardwareDevice::convertToStr(quint64 *reg)
 {
 	quint64 value = *reg;
 	QString ret = "000000000000000000000";
-	quint64 temp;
+	quint64 temp = 0;
 	int i = 0;
+
 	for(i = 0; i < 20; ++i) {
 		temp = (quint64)(value / 2);
 		quint64 temp2 = value - 2*temp;
 		ret.replace(i,1,QString::number(temp2));
 		value = temp;
 	};
+
 	ret.replace(i, 1, QString::number(temp));
 	QList<int> index;
 	foreach (int t, fieldlist.keys()) {
@@ -95,12 +91,11 @@ QString hardwareDevice::convertToStr(quint64 *reg)
 	std::sort(index.begin(), index.end());
 	int c = 0;
 	foreach (int i, index) {
-			if(i < 21) {
+		if(i < 21) {
 			ret.insert(i + c, "---");
 			c+= 3;
-			}
+		}
 	}
-
 	return ret;
 }
 

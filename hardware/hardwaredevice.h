@@ -41,17 +41,29 @@ class hardwareDevice:public QObject
 public:
 	typedef enum {LMX2326, AD9850, AD7685, LT1865} HWdevice;
 	typedef enum {PLL1, PLL2, PLL3, DDS1, DDS3, ADC_MAG, ADC_PH} MSAdevice;
-	typedef enum {SA, SATG, VNA} scanType_t;
+	typedef enum {SA, SA_TG, SA_SG, VNA} scanType_t;
 	typedef struct {
-		double frequency;
+		double translatedFrequency;
+		double realFrequency;
 		double LO1;
+		double LO3;
+		int band;
 	} scanStep;
 	typedef struct {
 		double baseFrequency;
 		double LO2; // from configuration
-		double finalFrequency; //final filter frequency;
+		double finalFilterFrequency; //final filter frequency;
+		double finalFilterBandwidth; //final filter bandwidth;
+		double TGoffset; //tracking generator offset
+		bool   TGreversed;
+		double SGout; //signal generator output frequency
 		double appxdds1; // center freq. of DDS1 xtal filter; exact value determined in calibration
+		double appxdds3; // center freq. of DDS3 xtal filter; exact value determined in calibration
+		double dds3Filterbandwidth;
+		double dds1Filterbandwidth;
 		double PLL1phasefreq; // from configuration default=0.974
+		double PLL2phasefreq; // 4
+		double PLL3phasefreq; // from configuration default=0.974
 		double masterOscilatorFrequency;
 		uint8_t adcAveraging;
 		scanType_t scanType;
