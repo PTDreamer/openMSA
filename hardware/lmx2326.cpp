@@ -82,7 +82,7 @@ lmx2326::lmx2326(msa::MSAdevice device, QObject *parent):genericPLL(parent)
 	pin->name = "";
 	pin->IOtype = hardwareDevice::VIRTUAL_CLK;
 	devicePins.insert(PIN_VIRTUAL_CLOCK, pin);
-	qDebug() << "DURING INIT" << s.ncounter;
+	//qDebug() << "DURING INIT" << s.ncounter;
 	Q_ASSERT(s.ncounter <= 0b111111111111111111111);
 
 }
@@ -94,31 +94,28 @@ hardwareDevice::clockType lmx2326::getClk_type() const
 
 void lmx2326::processNewScan()
 {
-	qDebug() << "lmx2326 starting processNewScan";
+	//qDebug() << "lmx2326 starting processNewScan";
 	double ncounter = 0;
 	double Bcounter = 0;
 	double Acounter = 0;
 	QList<quint32> index;
 	index.append(msa::getInstance().currentScan.steps.keys());
 	std::sort(index.begin(), index.end());
+
 	foreach (int step, index) {
 		if(initIndexes.contains(step))
 				continue;
 		ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, msa::getInstance().currentScan.steps[step],step);
 		Bcounter = floor(ncounter/32);
 		Acounter = round(ncounter-(Bcounter*32));
-		if(step == 0)
-			qDebug() << "1" << s.ncounter;
-		setFieldRegister(N_ACOUNTER_DIVIDER, Acounter);
-		setFieldRegister(N_BCOUNTER_DIVIDER, Bcounter);
 		setFieldRegister(N_CC, (int)control_field::NCOUNTER);
 		setFieldRegister(N_CPGAIN_BIT, (int)cp_gain::HIGH);//Phase Det Current, 1= 1 ma, 0= 250 ua
 		registerToBuffer(&s.ncounter, PIN_DATA, step);
 		addLEandCLK(step);
-		if(step == 0) {
-			qDebug() << "Acounter" << Acounter << "Bcounter" << Bcounter << s.ncounter;
-			qDebug() << convertToStr(&s.ncounter);
-		}
+		config[step] = s;
+		//qDebug() << "step:"<<"Acounter" << Acounter << "Bcounter" << Bcounter << s.ncounter;
+		//qDebug() << "step:"<<convertToStr(&s.ncounter);
+
 	}
 }
 
@@ -131,7 +128,10 @@ bool lmx2326::init()
 	setFieldRegister(L_COUNTER_RESET, 0);
 	setFieldRegister(L_POWER_DOWN, 0);
 	setFieldRegister(L_FO_LD, (int)FoLD_field::TRI_STATE);
-	setFieldRegister(L_PH_DET_POLARITY, (int)phase_detector::NON_INVERTED);
+	if(parser->getPLLinverted((msa::getInstance().currentScan.configuration)))
+		setFieldRegister(L_PH_DET_POLARITY, (int)phase_detector::INVERTED);
+	else
+		setFieldRegister(L_PH_DET_POLARITY, (int)phase_detector::NON_INVERTED);
 	setFieldRegister(L_CP, (int)cp_tri_state::NORMAL);
 	setFieldRegister(L_FASTLOCK, 0);
 	setFieldRegister(L_TIMEOUT, 0);
@@ -140,26 +140,28 @@ bool lmx2326::init()
 	setFieldRegister(L_TESTMODE, 0);
 	registerToBuffer(&s.latches, PIN_DATA, HW_INIT_STEP);
 	addLEandCLK(HW_INIT_STEP);
-	qDebug() << "lmx2326 initData" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
-	qDebug() << "lmx2326 initMask" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP).dataMask;
-	qDebug() << "lmx2326 initleda" << *devicePins.value(PIN_LE)->data.value(HW_INIT_STEP).dataArray;
-	qDebug() << "lmx2326 initlema" << *devicePins.value(PIN_LE)->data.value(HW_INIT_STEP).dataMask;
-	//qDebug() << "lmx2326 initclkd" << *devicePins.value(PIN_CLK)->data.value(INIT_STEP).dataArray;
-	//qDebug() << "lmx2326 initclkm" << *devicePins.value(PIN_CLK)->data.value(INIT_STEP).dataMask;
-	qDebug() << "lmx2326 initvcld" << *devicePins.value(PIN_VIRTUAL_CLOCK)->data.value(HW_INIT_STEP).dataArray;
-	qDebug() << "lmx2326 initvclm" << *devicePins.value(PIN_VIRTUAL_CLOCK)->data.value(HW_INIT_STEP).dataMask;
+	//qDebug() << "lmx2326 initData" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP).dataArray;
+	//qDebug() << "lmx2326 initMask" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP).dataMask;
+	//qDebug() << "lmx2326 initleda" << *devicePins.value(PIN_LE)->data.value(HW_INIT_STEP).dataArray;
+	//qDebug() << "lmx2326 initlema" << *devicePins.value(PIN_LE)->data.value(HW_INIT_STEP).dataMask;
+	////qDebug() << "lmx2326 initclkd" << *devicePins.value(PIN_CLK)->data.value(INIT_STEP).dataArray;
+	////qDebug() << "lmx2326 initclkm" << *devicePins.value(PIN_CLK)->data.value(INIT_STEP).dataMask;
+	//qDebug() << "lmx2326 initvcld" << *devicePins.value(PIN_VIRTUAL_CLOCK)->data.value(HW_INIT_STEP).dataArray;
+	//qDebug() << "lmx2326 initvclm" << *devicePins.value(PIN_VIRTUAL_CLOCK)->data.value(HW_INIT_STEP).dataMask;
 
 	initIndexes.clear();
 	initIndexes.append(HW_INIT_STEP);
+	config[HW_INIT_STEP] = s;
 	double rcounter = parser->parsePLLRCounter(msa::getInstance().currentScan.configuration);//10.7/0.974 = 11
+	//qDebug()<<"RCOUNTER"<<rcounter;
 	setFieldRegister(R_DIVIDER, rcounter);
 	setFieldRegister(R_LD, 0);
 	setFieldRegister(R_TESTMODES, 0);
 	registerToBuffer(&s.rcounter, PIN_DATA, HW_INIT_STEP -1);
-	qDebug() << "LMX2326 SCAN_INIT_STEP rcounter:" << convertToStr(&s.rcounter) << rcounter;
-	qDebug() << "LMX2326 SCAN_INIT_STEP PIN_DATA dataArray:" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP-1).dataArray;
+	//qDebug() << "LMX2326 SCAN_INIT_STEP rcounter:" << convertToStr(&s.rcounter) << rcounter;
+	//qDebug() << "LMX2326 SCAN_INIT_STEP PIN_DATA dataArray:" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP-1).dataArray;
 	addLEandCLK(HW_INIT_STEP - 1);
-
+	config[HW_INIT_STEP - 1] = s;
 	initIndexes.append(HW_INIT_STEP - 1);
 	msa::scanStep st;
 	msa::getInstance().currentScan.steps.insert(HW_INIT_STEP, st);
@@ -167,7 +169,7 @@ bool lmx2326::init()
 	if(ncounter > 0) {
 		double Bcounter = floor(ncounter/32);
 		double Acounter = round(ncounter-(Bcounter*32));
-		qDebug() << "PLL2 Acounter" << Acounter << "Bcounter" << Bcounter;
+		//qDebug() << "PLL2 Acounter" << Acounter << "Bcounter" << Bcounter;
 		setFieldRegister(N_ACOUNTER_DIVIDER, Acounter);
 		setFieldRegister(N_BCOUNTER_DIVIDER, Bcounter);
 		setFieldRegister(N_CC, (int)control_field::NCOUNTER);
@@ -176,6 +178,7 @@ bool lmx2326::init()
 		addLEandCLK(HW_INIT_STEP - 2);
 		initIndexes.append(HW_INIT_STEP - 2);
 	}
+	config[HW_INIT_STEP - 2] = s;
 	return true;
 }
 
@@ -205,12 +208,17 @@ bool lmx2326::checkSettings()
 	return true;
 }
 
+QHash<quint32, lmx2326_struct> lmx2326::getConfig() const
+{
+	return config;
+}
+
 double lmx2326::getVcoFrequency(double external_clock_frequency)
 {
 	double ret;
 	ret = ((double)32 * (double)getFieldRegister(N_BCOUNTER_DIVIDER)+ (double)getFieldRegister(N_ACOUNTER_DIVIDER)) * (external_clock_frequency / (double)getFieldRegister(R_DIVIDER));
-	qDebug() << ((32 * (double)getFieldRegister(N_BCOUNTER_DIVIDER))+ (double)getFieldRegister(N_ACOUNTER_DIVIDER));
-	qDebug() << (external_clock_frequency / (double)getFieldRegister(R_DIVIDER));
+	//qDebug() << ((32 * (double)getFieldRegister(N_BCOUNTER_DIVIDER))+ (double)getFieldRegister(N_ACOUNTER_DIVIDER));
+	//qDebug() << (external_clock_frequency / (double)getFieldRegister(R_DIVIDER));
 
 	return ret;
 }

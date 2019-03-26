@@ -7,6 +7,8 @@
 #include <QBitArray>
 #include "hardware/hardwaredevice.h"
 #include "deviceparser.h"
+#include <QVector>
+
 typedef struct {
 	quint64 rcounter;
 	quint64 ncounter;
@@ -26,6 +28,8 @@ public:
 	~lmx2326();
 	int getRCounter();
 	typedef enum {PIN_CLK, PIN_DATA, PIN_LE, PIN_VIRTUAL_CLOCK} pins;
+	QHash<quint32, lmx2326_struct> getConfig() const;
+
 protected:
 private:
 	void loadRcounterCC(int value);
@@ -38,12 +42,13 @@ private:
 
 	enum class control_field {RCOUNTER=0, NCOUNTER=1, FUNCTION_LATCH=2, INIT=3};
 	enum class FoLD_field {TRI_STATE=0, R_DIVIDER_OUT=4, N_DIVIDER_OUT=2, SERIAL_DATA_OUT=6, DIGITAL_LOCK_DETECT=1, nCHANNEL_OPEN_DRAIN_LOCK_DETECT=5, ACTIVE_HIGH=3, ACTIVE_LOW=7};
-	enum class phase_detector {NON_INVERTED=0, INVERTED=1};
+	enum class phase_detector {NON_INVERTED=1, INVERTED=0};
 	enum class cp_gain {LOW = 0, HIGH};//250uA, 1ma
 	enum class cp_tri_state {NORMAL, TRI_STATE};
 	// returns VCO frequency based on the current register values
 	double getVcoFrequency(double external_clock_frequency);
 	bool addLEandCLK(quint32 step);
 	bool checkSettings();
+	QHash<quint32,lmx2326_struct> config;
 };
 #endif // LMX2326_H

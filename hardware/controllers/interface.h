@@ -49,7 +49,7 @@ public:
 	virtual void hardwareInit();
 
 signals:
-	void dataReady(int step, double magnitude, double phase);
+	void dataReady(quint32 step, quint32 magnitude, quint32 phase);
 	void connected();
 	void disconnected();
 protected:

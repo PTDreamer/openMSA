@@ -67,16 +67,20 @@ ad9850::ad9850(msa::MSAdevice device, QObject *parent) : genericDDS(parent)
 void ad9850::processNewScan()
 {
 	bool error; //TODO CHECK ERRORS
-	foreach (int step, msa::getInstance().currentScan.steps.keys()) {
+	QList<quint32> steps = msa::getInstance().currentScan.steps.keys();
+	std::sort(steps.begin(), steps.end());
+	foreach (int step, steps) {
 		quint32 base = parser->parseDDSOutput(msa::getInstance().currentScan.configuration, step, error);
+		//qDebug()<<"DDS:" << "step:"<<step<<" "<< base;
 		if(!error) {
 			setFieldRegister(FIELD_FREQUENCY, base);
 			registerToBuffer(&deviceRegister, PIN_DATA, step);
+			config[step] = deviceRegister;
 		}
 	}
 //	foreach(int x, devicePins.value(PIN_DATA)->data.keys()) {
 //		QBitArray *arr = devicePins.value(PIN_DATA)->data.value(x).dataArray;
-//		//qDebug() << "ad9850" << getDDSOutput(x) << *arr;
+//		////qDebug() << "ad9850" << getDDSOutput(x) << *arr;
 //	}
 }
 
@@ -85,14 +89,14 @@ bool ad9850::init()
 	foreach (int key, devicePins.keys()) {
 		devicePins.value(key)->data.insert(HW_INIT_STEP, createPinData(0));
 	}
-	QString clkd = "111010 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";//1
-	QString clkm = "100111 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";
-	QString fqud = "010000 10 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 10";//2
-	QString fqum = "011000 11 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 11";
-	QString datd = "000000 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";
-	QString datm = "000000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 00";
-	QString vcld = "000000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 00";
-	QString vclm = "000000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 10";
+	QString clkd = "11110 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";//1
+	QString clkm = "10011 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";
+	QString fqud = "01000 10 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 10";//2
+	QString fqum = "01100 11 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 11";
+	QString datd = "00000 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";
+	QString datm = "00000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 00";
+	QString vcld = "00000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 00";
+	QString vclm = "00000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 10";
 
 	convertStringToBitArray(clkd, devicePins.value(PIN_WCLK)->data.value(HW_INIT_STEP).dataArray);
 	convertStringToBitArray(clkm, devicePins.value(PIN_WCLK)->data.value(HW_INIT_STEP).dataMask);
@@ -133,6 +137,11 @@ void ad9850::registerToBuffer(quint64 *reg, int pin, quint32 step)
 		(*arrayData)[x] = r & (quint64)1;
 		r = r >> 1;
 	}
+}
+
+QHash<quint64, quint64> ad9850::getConfig() const
+{
+	return config;
 }
 
 hardwareDevice::clockType ad9850::getClk_type() const

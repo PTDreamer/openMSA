@@ -37,7 +37,6 @@ slimusb::slimusb(QObject *parent): interface(parent), usb(parent), autoConnect(t
 	lastCommandedStep = 0;
 	usbB2union.command.adcMAG = 0;
 	usbB2union.command.adcPhase = 0;
-	currentLatchValue.resize(5);
 	latchToUSBNumber.insert(1,1);
 	latchToUSBNumber.insert(2,3);
 	latchToUSBNumber.insert(3,0);
@@ -53,7 +52,7 @@ slimusb::slimusb(QObject *parent): interface(parent), usb(parent), autoConnect(t
 	usbB2union.data[9] = 0x14;
 	usbB2union.data[10] = 0x00;
 	usbB2union.data[11] = 0x00;
-	qDebug() << "XXXXXXXXXXXXXXXXXXXXXXX" << usbB2union.command.adcMAG;
+	//qDebug() << "XXXXXXXXXXXXXXXXXXXXXXX" << usbB2union.command.adcMAG;
 }
 
 bool slimusb::init(int debugLevel)
@@ -125,6 +124,7 @@ slimusb::~slimusb()
 
 void slimusb::commandStep(int step)
 {
+	qDebug()<<"step:"<< step;
 	sendUSB(*usbData.value(step), 7, false);
 	QThread::usleep(writeReadDelay_us);
 	sendUSB(adcSend, 0, false, true);
@@ -169,10 +169,14 @@ void slimusb::initScan()
 	QList<hardwareDevice::devicePin*> dataPins;
 	int maxSize = 0;
 	interface::initScan();
-	pll1->processNewScan();
-	dds1->processNewScan();
-	pll3->processNewScan();
-	dds3->processNewScan();
+	if(pll1)
+		pll1->processNewScan();
+	if(dds1)
+		dds1->processNewScan();
+	if(pll3)
+		pll3->processNewScan();
+	if(dds3)
+		dds3->processNewScan();
 	qDeleteAll(usbData.values());
 	usbData.clear();
 	foreach (hardwareDevice *dev, msa::getInstance().currentHardwareDevices.values()) {
@@ -189,7 +193,7 @@ void slimusb::initScan()
 		QByteArray *arr = new QByteArray;
 		usbData.insert(step, arr);
 		for(int b = 0; b < maxSize; ++b) {
-			uint8_t byte = currentLatchValue.at(1);
+			uint8_t byte;
 			foreach (hardwareDevice::devicePin *pin, dataPins) {
 				if(!pin->hwconfig)
 					continue;
@@ -202,9 +206,24 @@ void slimusb::initScan()
 					}
 				}
 			}
-			arr->append(byte);
+			arr->append(byte | msa::getInstance().getResolution_filter_bank());
 		}
 	}
+//	QList<quint32>steps = usbData.keys();
+//	std::sort(steps.begin(),steps.end());
+//	foreach (quint32 step, steps) {
+//		QString str;
+//		foreach (quint8 x, *usbData.value(step)) {
+//			QString ss = QString::number(x, 16).toUpper();
+//			QString s;
+//			if(ss.length() == 1)
+//				s = "0" + ss;
+//			else
+//				s = ss;
+//			str.append(s);
+//		}
+//		//qDebug() << step << ":" << str;
+//	}
 	adcSend.clear();
 	if(msa::getInstance().currentScan.configuration.scanType != msa::VNA) {
 		adcSend.append(0xB2);//TODO
@@ -476,7 +495,8 @@ void slimusb::hardwareInit()
 	int t = 0;
 	if(pll1) {
 		foreach (int step, pll1->getInitIndexes()) {
-			qDebug() << "PLL1 step:" << t;
+			//qDebug() << "PLL1 step:" << t;
+			//qDebug() << step;
 			commandInitStep(pll1, step);
 			usbToString(QByteArray(), true, 0);
 			++t;
@@ -485,7 +505,7 @@ void slimusb::hardwareInit()
 	}
 	if(dds1) {
 		foreach (int step, dds1->getInitIndexes()) {
-			qDebug() << "DDS1 step:" << t;
+			//qDebug() << "DDS1 step:" << t;
 			commandInitStep(dds1, step);
 			usbToString(QByteArray(), true, 0);
 			++t;
@@ -494,7 +514,7 @@ void slimusb::hardwareInit()
 	}
 	if(pll2) {
 		foreach (int step, pll2->getInitIndexes()) {
-			qDebug() << "PLL2 step:" << t;
+			//qDebug() << "PLL2 step:" << t;
 			commandInitStep(pll2, step);
 			usbToString(QByteArray(), true, 0);
 			++t;
@@ -503,7 +523,7 @@ void slimusb::hardwareInit()
 	}
 	if(pll3) {
 		foreach (int step, pll3->getInitIndexes()) {
-			qDebug() << "PLL3 step:" << t;
+			//qDebug() << "PLL3 step:" << t;
 			commandInitStep(pll3, step);
 			usbToString(QByteArray(), true, 0);
 			++t;
@@ -512,13 +532,29 @@ void slimusb::hardwareInit()
 	}
 	if(dds3) {
 		foreach (int step, dds3->getInitIndexes()) {
-			qDebug() << "DDS3 step:" << t;
+			//qDebug() << "DDS3 step:" << t;
 			commandInitStep(dds3, step);
 			usbToString(QByteArray(), true, 0);
 			++t;
 		}
 	}
 
+}
+
+QByteArray slimusb::convertStringToByteArray(QString str) {
+	QByteArray ret;
+	bool ok;
+	for(int x = 0; x < str.length(); x = x + 2) {
+		ret.append(str.mid(x, 2).toInt(&ok,16));
+	}
+	return ret;
+}
+
+bool slimusb::sendArrayForDebug(QByteArray arr)
+{
+	bool s;
+	s = usb.sendArray(arr);
+	return s;
 }
 
 void slimusb::run()
@@ -530,7 +566,7 @@ void slimusb::run()
 		commandStep(currentStep);
 		if(!msa::getInstance().getIsInverted())
 			++currentStep;
-		if(currentStep > (qint32)(numberOfSteps - 1))
+		if(currentStep >= (qint32)(numberOfSteps - 1))
 			currentStep = 0;
 		if(msa::getInstance().getIsInverted())
 			--currentStep;
@@ -566,7 +602,7 @@ void slimusb::commandInitStep(hardwareDevice *dev, int step) {
 					if(previousLatch == -1)
 						previousLatch = currentLatch;
 				} else if(pin->hwconfig && (currentLatch != ((parallelEqui*)(pin->hwconfig))->latch)){
-					qDebug()<< currentLatch <<"!=" << ((parallelEqui*)(pin->hwconfig))->latch;
+					//qDebug()<< currentLatch <<"!=" << ((parallelEqui*)(pin->hwconfig))->latch;
 					Q_ASSERT(false);
 				}
 			}
@@ -578,14 +614,14 @@ void slimusb::commandInitStep(hardwareDevice *dev, int step) {
 					currentVirtualCLK = pin->data.value(step).dataArray->at(x);
 					if(previousVirtualCLK == -1)
 						previousVirtualCLK = currentVirtualCLK;
-					//qDebug() << "setting virtual clock to:" << currentVirtualCLK << "bit:" << x;
+					////qDebug() << "setting virtual clock to:" << currentVirtualCLK << "bit:" << x;
 				}
 			}
 		}
 		if(previousVirtualCLK == -1)
 			previousVirtualCLK = 0;
 		if((currentLatch != previousLatch) || ((currentVirtualCLK != previousVirtualCLK) && currentVirtualCLK !=-1)) {
-			//qDebug() << "currentLatch"<<currentLatch<< "previousLatch"<<previousLatch<<"currentVirtualCLK"<<currentVirtualCLK<<"previousVirtualCLK"<<previousVirtualCLK;
+			////qDebug() << "currentLatch"<<currentLatch<< "previousLatch"<<previousLatch<<"currentVirtualCLK"<<currentVirtualCLK<<"previousVirtualCLK"<<previousVirtualCLK;
 			if(sendArray.size() > 0) {
 				sendUSB(sendArray, previousLatch, previousVirtualCLK == 1);
 				sendArray.clear();
@@ -611,7 +647,7 @@ void slimusb::commandInitStep(hardwareDevice *dev, int step) {
 
 void slimusb::sendUSB(QByteArray data, uint8_t latch, bool autoClock, bool isADC) {
 	static int temp = 0;
-	//qDebug() << temp << "send latch:" << latch << "autoclk:"<< autoClock << "ADC:" << isADC << data;
+	////qDebug() << temp << "send latch:" << latch << "autoclk:"<< autoClock << "ADC:" << isADC << data;
 	static int z = 0;
 	if(z == 2) {
 		//while(true);
@@ -619,12 +655,25 @@ void slimusb::sendUSB(QByteArray data, uint8_t latch, bool autoClock, bool isADC
 	++z;
 	if(!isADC) {
 		int s = data.size();
+		if(latch == 1) {
+			for(int x = 0; x < s; ++x) {
+				data[x] = data[x] | (msa::getInstance().getResolution_filter_bank() << 5);
+			}
+		}
+		if((latchToUSBNumber.value(latch) == 1) && (s == 21)) {
+			int x = 0;
+			data.insert(0, x);
+			data.insert(0, x);
+			data.insert(0, x);
+			s = s + 3;
+		}
 		data.insert(0, (int)autoClock);
-		data.insert(0, s);
+		data.insert(0, s);//delete +3
 		data.insert(0, 0xA0 + latchToUSBNumber.value(latch));
 	}
 	if(usb.isConnected()) {
 		if(!isADC) {
+			usbToString(data, false, temp);
 			if(!usb.sendArray(data)) {
 				this->requestInterruption();
 			}
@@ -644,6 +693,16 @@ void slimusb::sendUSB(QByteArray data, uint8_t latch, bool autoClock, bool isADC
 }
 void slimusb::usbToString(QByteArray array, bool print, int temp) {
 	QString str;
+	foreach (quint8 x, array) {
+		QString ss = QString::number(x, 16).toUpper();
+		QString s;
+		if(ss.length() == 1)
+			s = "0" + ss;
+		else
+			s = ss;
+		str.append(s);
+	}
+	qDebug() << str;
 	unsigned char *data = reinterpret_cast<unsigned char*>(array.data());
 	for(int i = 0; i < array.length(); ++i) {
 		QString d = QString::number(data[i], 16);
@@ -694,10 +753,11 @@ void slimusb::usbToString(QByteArray array, bool print, int temp) {
 		list.append("");
 		foreach (QString s, list) {
 			if(!s.isEmpty())
-				qDebug() << s;
+				;//qDebug() << s;
 		}
 		list.clear();
 	}
+
 }
 QString slimusb::constructString(uint8_t latch1, uint8_t latch2, uint8_t latch3, uint8_t latch4, QString clock) {
 	QString str;
@@ -732,6 +792,11 @@ void slimusb::resumeScan()
 	isPaused = false;
 }
 
+void slimusb::cancelScan()
+{
+	this->requestInterruption();
+}
+
 bool slimusb::getAutoConnect() const
 {
 	return autoConnect;
@@ -752,7 +817,7 @@ void slimusb::printUSBData(int step) {
 			d.insert(0,"0");
 		str.append(d);
 	}
-	qDebug() << str;
+	//qDebug() << str;
 }
 
 unsigned long slimusb::getWriteReadDelay_us() const

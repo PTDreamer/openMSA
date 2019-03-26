@@ -38,8 +38,10 @@ public:
 	deviceParser(msa::MSAdevice dev, hardwareDevice *parent);
 	double parsePLLRCounter(msa::scanConfig config);
 	double parsePLLNCounter(msa::scanConfig configuration, msa::scanStep &step, int stepNumber);
+	bool getPLLinverted(msa::scanConfig config);
 	quint32 parseDDSOutput(msa::scanConfig configuration, int stepNumber, bool &error);
 	hardwareDevice::HWdevice getDeviceType() {return hwdev;}
+	msa::MSAdevice getDevice() {return msadev;}
 	~deviceParser();
 private:
 	msa::MSAdevice msadev;

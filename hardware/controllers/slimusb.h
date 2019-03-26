@@ -56,7 +56,8 @@ public:
 	unsigned long getWriteReadDelay_us() const;
 	void setWriteReadDelay_us(unsigned long value);
 	bool isScanning();
-
+	QByteArray convertStringToByteArray(QString str);
+	bool sendArrayForDebug(QByteArray);
 protected:
 	void run();
 public slots:
@@ -65,6 +66,7 @@ public slots:
 	void autoScan();
 	void pauseScan();
 	void resumeScan();
+	void cancelScan();
 signals:
 
 private:
@@ -92,7 +94,6 @@ private:
 	} parallelEqui;
 	QHash<msa::MSAdevice, QHash<hardwareDevice::HWdevice, parallelEqui>> pinMapping;
 	bool autoConnect;
-	QVector<uint8_t> currentLatchValue;
 	bool singleStep;
 	unsigned long writeReadDelay_us;
 	bool isPaused;

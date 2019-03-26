@@ -5,8 +5,10 @@
 #-------------------------------------------------
 
 QT       += core gui
-
+target.path = /home/jose/code
+INSTALLS += target
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+QT +=network
 
 TARGET = openmsa
 TEMPLATE = app

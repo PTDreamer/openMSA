@@ -50,11 +50,11 @@ usbdevice::~usbdevice()
 	worker.wait(1000);
 	if(deviceHandler) {
 		libusb_close(deviceHandler);
-		qDebug() << "closing device";
+		//qDebug() << "closing device";
 	}
 	libusb_free_device_list(devs, 1); //free the list, unref the devices in it
 	libusb_exit(ctx);
-	qDebug()<< "end destructor";
+	//qDebug()<< "end destructor";
 	delete w;
 }
 
@@ -67,7 +67,7 @@ bool usbdevice::openDevice(int deviceNumber)
 		return false;
 	}
 	if(deviceHandler) {
-		qDebug() << "USB device connected";
+		//qDebug() << "USB device connected";
 		emit connected();
 		return true;
 	}
@@ -84,12 +84,12 @@ void usbdevice::closeDevice()
 bool usbdevice::isHotPlugCapable()
 {
 	if (!libusb_has_capability (LIBUSB_CAP_HAS_HOTPLUG)) {
-		qDebug()<< ("Hotplug capabilites are not supported on this platform\n");
+		//qDebug()<< ("Hotplug capabilites are not supported on this platform\n");
 		libusb_exit (NULL);
 		return false;
 	}
 	else {
-		qDebug()<< ("Hotplug capabilites are SUPPORTED\n");
+		//qDebug()<< ("Hotplug capabilites are SUPPORTED\n");
 		return true;
 	}
 }
@@ -230,7 +230,7 @@ bool usbdevice::sendArray(QByteArray data, unsigned char* receivedData, int expe
 		if(usbdevice::deviceHandler)
 			libusb_close(usbdevice::deviceHandler);
 		usbdevice::deviceHandler = NULL;
-		qDebug() << "NOT reveived ADC2";
+		//qDebug() << "NOT reveived ADC2";
 		emit disconnected();
 		return false;
 	}
@@ -242,7 +242,7 @@ bool usbdevice::sendArray(QByteArray data, unsigned char* receivedData, int expe
 				libusb_close(usbdevice::deviceHandler);
 			usbdevice::deviceHandler = NULL;
 			emit disconnected();
-			qDebug() << "NOT reveived ADC2" << r;
+			//qDebug() << "NOT reveived ADC2" << r;
 			Q_ASSERT(false);
 			return false;
 		}
@@ -291,23 +291,23 @@ int LIBUSB_CALL usbdevice::hotplug_callback(struct libusb_context *ctx, struct l
 		}
 		cout<<"Claimed Interface"<<endl;
 		if (LIBUSB_SUCCESS != rc) {
-			qDebug()<<("Could not open USB device\n");
+			//qDebug()<<("Could not open USB device\n");
 		}
 		else {
 			if(th)
 				th->signalConnected();
-			qDebug() << "Device connected";
+			//qDebug() << "Device connected";
 		}
 	} else if (LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT == event) {
 		if (deviceHandler) {
 			if(th)
 				th->signalDisconnected();
-			qDebug() << "Device disconnected";
+			//qDebug() << "Device disconnected";
 			libusb_close(deviceHandler);
 			deviceHandler = NULL;
 		}
 	} else {
-		qDebug()<< QString("Unhandled event %d\n").arg(event);
+		//qDebug()<< QString("Unhandled event %d\n").arg(event);
 	}
 	return 0;
 }
@@ -331,11 +331,11 @@ void hotplugWorker::doWork(libusb_context *context)
 	while (run) {
 		libusb_handle_events_timeout_completed(context, &t, NULL);
 	}
-	qDebug()<<("quit hotplugWorker");
+	//qDebug()<<("quit hotplugWorker");
 }
 
 void hotplugWorker::quit()
 {
 	 run = false;
-	 qDebug() << "QUIT";
+	 //qDebug() << "QUIT";
 }

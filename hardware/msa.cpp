@@ -36,6 +36,16 @@ bool msa::getIsInverted() const
 	return isInverted;
 }
 
+int msa::getResolution_filter_bank() const
+{
+	return resolution_filter_bank;
+}
+
+void msa::setResolution_filter_bank(int value)
+{
+	resolution_filter_bank = value;
+}
+
 void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 {
 	currentInterface = usedInterface;
@@ -59,9 +69,9 @@ void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 	currentInterface->hardwareInit();
 }
 
-void msa::initScan(bool inverted, double start, double end, double step, int band)
+void msa::initScan(bool inverted, double start, double end, int steps, int band)
 {
-	int steps = (end - start) / step;
+	double step = (end - start) / (double)steps;
 	int thisBand = 0;
 	int bandSelect = 0;
 	for(int x = 0; x < steps; ++x) {
@@ -93,11 +103,17 @@ void msa::initScan(bool inverted, double start, double end, double step, int ban
 			break;
 		}
 		s.band = bandSelect;
-		qDebug() << "step:" << x << "real frequency:" << s.realFrequency << "translated frequency:" << s.translatedFrequency;
+		//qDebug() << "step:" << x << "real frequency:" << s.realFrequency << "translated frequency:" << s.translatedFrequency;
 		msa::getInstance().currentScan.steps.insert(x, s);
 	}
 	isInverted = inverted;
 	currentInterface->initScan();
+}
+
+void msa::initScan(bool inverted, double start, double end, double step_freq, int band)
+{
+	int steps = (end - start) / step_freq;
+	initScan(inverted, start, end, steps, band);
 }
 
 void msa::setScanConfiguration(msa::scanConfig configuration)

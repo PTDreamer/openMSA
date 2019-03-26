@@ -45,11 +45,14 @@ public:
 	// gets the type of CLK this device needs, dedicated or system wide
 	clockType getClk_type() const;
 	typedef enum {PIN_DATA, PIN_FQUD, PIN_WCLK, PIN_VIRTUAL_CLOCK} pins;
+	QHash<quint64, quint64> getConfig() const;
+
 private:
 	typedef enum {FIELD_FREQUENCY, FIELD_CONTROL, FIELD_POWER, FIELD_PHASE} fields_type;
 	bool checkSettings();
 	quint64 deviceRegister;
 	void registerToBuffer(quint64 *reg, int pin, quint32 step);
+	QHash<quint64, quint64> config;
 signals:
 
 public slots:

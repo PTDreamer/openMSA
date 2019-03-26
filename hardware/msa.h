@@ -44,6 +44,7 @@ class msa
 		msa() {}
 		interface *currentInterface;
 		bool isInverted;
+		int resolution_filter_bank;
 	public:
 		msa(msa const&)               = delete;
 		void operator=(msa const&)  = delete;
@@ -72,6 +73,9 @@ class msa
 			double PLL1phasefreq; // from configuration default=0.974
 			double PLL2phasefreq; // 4
 			double PLL3phasefreq; // from configuration default=0.974
+			bool   PLL1phasepolarity_inverted;
+			bool   PLL2phasepolarity_inverted;
+			bool   PLL3phasepolarity_inverted;
 			double masterOscilatorFrequency;
 			uint8_t adcAveraging;
 			scanType_t scanType;
@@ -82,8 +86,11 @@ class msa
 		} scanStruct;
 		scanStruct currentScan;
 		void setScanConfiguration(msa::scanConfig configuration);
-		void initScan(bool inverted, double start, double end, double step, int band = -1);
+		void initScan(bool inverted, double start, double end, double step_freq, int band = -1);
+		void initScan(bool inverted, double start, double end, int steps, int band = -1);
 		bool getIsInverted() const;
+		int getResolution_filter_bank() const;
+		void setResolution_filter_bank(int value);
 };
 
 #endif // MSA_H

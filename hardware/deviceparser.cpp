@@ -85,6 +85,7 @@ double deviceParser::parsePLLRCounter(msa::scanConfig config)
 	}
 	return ret;
 }
+#define my//qDebug() //qDebug() << fixed << qSetRealNumberPrecision(12)
 
 double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanStep &step, int stepNumber)
 {
@@ -99,9 +100,12 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 		case hardwareDevice::LMX2326:
 			lmx = (genericPLL*)msa::getInstance().currentHardwareDevices.value(msadev);
 			step.LO1 = configuration.baseFrequency + step.translatedFrequency + configuration.LO2 - configuration.finalFilterFrequency;
+
+			my//qDebug() << "LO1 step:"<< stepNumber << step.LO1 <<"="<< configuration.baseFrequency <<"+"<< step.translatedFrequency <<"+"<< configuration.LO2 <<"-"<< configuration.finalFilterFrequency;
 			ncount = step.LO1/(configuration.appxdds1/ lmx->getRCounter()); //approximates the Ncounter for PLL
 			ncounter = (int)round(ncount); //approximates the ncounter for PLL
 			lmx->setPFD(step.LO1/ncounter, stepNumber);//approx phase freq of PLL
+			my//qDebug()<< "PLL1 "<< "step:"<<stepNumber << "PFD:"<<step.LO1/ncounter;
 			break;
 		default:
 			break;
@@ -158,9 +162,9 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 					step.LO3 = configuration.SGout;
 			}
 			if(lmx) {
-			ncount = step.LO3/(configuration.appxdds3/ lmx->getRCounter()); //approximates the Ncounter for PLL
-			ncounter = (int)round(ncount); //approximates the ncounter for PLL
-			lmx->setPFD(step.LO3/ncounter, stepNumber);//approx phase freq of PLL
+				ncount = step.LO3/(configuration.appxdds3/ lmx->getRCounter()); //approximates the Ncounter for PLL
+				ncounter = (int)round(ncount); //approximates the ncounter for PLL
+				lmx->setPFD(step.LO3/ncounter, stepNumber);//approx phase freq of PLL
 			}
 			break;
 		default:
@@ -173,6 +177,24 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 	return ncounter;
 }
 
+bool deviceParser::getPLLinverted(msa::scanConfig config)
+{
+	switch (msadev) {
+	case msa::PLL1:
+		return config.PLL1phasepolarity_inverted;
+		break;
+	case msa::PLL2:
+		return config.PLL2phasepolarity_inverted;
+		break;
+	case msa::PLL3:
+		return config.PLL3phasepolarity_inverted;
+		break;
+	default:
+		return false;
+		break;
+	}
+}
+
 quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, int stepNumber, bool &error)
 {
 	error = false;
@@ -183,19 +205,20 @@ quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, int stepNumb
 	case msa::DDS1:
 		switch (hwdev) {
 		case hardwareDevice::AD9850:
-			//	qDebug() << qSetRealNumberPrecision( 10 ) << "acounter" << Acounter << "bcounter" << Bcounter << "ncounter" << ncounter << "rcounter" << rcounter << "frequency" << scan.steps.value(step).frequency<<"LO1"<<scan.steps[step].LO1;
+			//	//qDebug() << qSetRealNumberPrecision( 10 ) << "acounter" << Acounter << "bcounter" << Bcounter << "ncounter" << ncounter << "rcounter" << rcounter << "frequency" << scan.steps.value(step).frequency<<"LO1"<<scan.steps[step].LO1;
 				ddsoutput = ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL1))->getPFD(stepNumber) * ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL1))->getRCounter();
 				//if ddsoutput >= ddsclock/2 then  error
 				//the formula for the frequency output of the DDS(AD9850, 9851, or any 32 bit DDS) is:
 				//ddsoutput = base*ddsclock/2^32, where "base" is the decimal equivalent of command words
 				//to find "base", first:
 				fullbase=(ddsoutput*pow(2,32)/configuration.masterOscilatorFrequency); //decimal number, including fraction
+				//qDebug()<< "ddsoutput" << ddsoutput <<"=pfd:"<< ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL1))->getPFD(stepNumber) << "* rcounter:"<< ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL1))->getRCounter() << "  fullbase:"<< fullbase;
 				//then, round off fraction to the nearest whole number
 				base = round(fullbase);
 				//When entering this routine, ddsoutput was approximate. Now, the exact ddsoutput can be determined by:
-				ddsoutput = base*64/pow(2,32);  //117c19
+				ddsoutput = base*msa::getInstance().currentScan.configuration.masterOscilatorFrequency/pow(2,32);  //117c19
 				((genericDDS*)msa::getInstance().currentHardwareDevices.value(msa::DDS1))->setDDSOutput(ddsoutput, stepNumber);
-			//	qDebug() << qSetRealNumberPrecision( 10 ) << "target freq"<< scan.steps[step].frequency << "ddsoutput" << ddsoutput << "VCO" <<getVcoFrequency(ddsoutput) << "DIFF" <<10.7 - (1024 - getVcoFrequency(ddsoutput));
+			//	//qDebug() << qSetRealNumberPrecision( 10 ) << "target freq"<< scan.steps[step].frequency << "ddsoutput" << ddsoutput << "VCO" <<getVcoFrequency(ddsoutput) << "DIFF" <<10.7 - (1024 - getVcoFrequency(ddsoutput));
 				if((ddsoutput - configuration.appxdds1) > (configuration.dds1Filterbandwidth / 2))
 						error = true;
 			break;
@@ -206,7 +229,7 @@ quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, int stepNumb
 	case msa::DDS3:
 		switch (hwdev) {
 		case hardwareDevice::AD9850:
-			//	qDebug() << qSetRealNumberPrecision( 10 ) << "acounter" << Acounter << "bcounter" << Bcounter << "ncounter" << ncounter << "rcounter" << rcounter << "frequency" << scan.steps.value(step).frequency<<"LO1"<<scan.steps[step].LO1;
+			//	//qDebug() << qSetRealNumberPrecision( 10 ) << "acounter" << Acounter << "bcounter" << Bcounter << "ncounter" << ncounter << "rcounter" << rcounter << "frequency" << scan.steps.value(step).frequency<<"LO1"<<scan.steps[step].LO1;
 				ddsoutput = ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL3))->getPFD(stepNumber) * ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL3))->getRCounter();
 				//if ddsoutput >= ddsclock/2 then  error
 				//the formula for the frequency output of the DDS(AD9850, 9851, or any 32 bit DDS) is:
@@ -216,9 +239,9 @@ quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, int stepNumb
 				//then, round off fraction to the nearest whole number
 				base = round(fullbase);
 				//When entering this routine, ddsoutput was approximate. Now, the exact ddsoutput can be determined by:
-				ddsoutput = base*64/pow(2,32);  //117c19
+				ddsoutput = base*msa::getInstance().currentScan.configuration.masterOscilatorFrequency/pow(2,32);  //117c19
 				((genericDDS*)msa::getInstance().currentHardwareDevices.value(msa::DDS3))->setDDSOutput(ddsoutput, stepNumber);
-			//	qDebug() << qSetRealNumberPrecision( 10 ) << "target freq"<< scan.steps[step].frequency << "ddsoutput" << ddsoutput << "VCO" <<getVcoFrequency(ddsoutput) << "DIFF" <<10.7 - (1024 - getVcoFrequency(ddsoutput));
+			//	//qDebug() << qSetRealNumberPrecision( 10 ) << "target freq"<< scan.steps[step].frequency << "ddsoutput" << ddsoutput << "VCO" <<getVcoFrequency(ddsoutput) << "DIFF" <<10.7 - (1024 - getVcoFrequency(ddsoutput));
 				if((ddsoutput- configuration.appxdds3) > (configuration.dds3Filterbandwidth / 2))
 						error = true;
 			break;
