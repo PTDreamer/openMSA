@@ -1,0 +1,43 @@
+filter check
+if freq<5 or freq>15 or bw<.01 or bw>5000 then notice "Invalid Values" : exit sub
+
+if appxLO2<=100 or appxLO2>3000 then _
+        configDataError$="Invalid LO2 freq." : exit function
+if appxLO2<>PLL2phasefreq*int(appxLO2/PLL2phasefreq) then _
+            configDataError$="LO2 is not a multiple of PLL2phasefreq." : exit function
+end function
+
+
+if(step.LO1 > 2200)
+        msa::getInstance().currentInterface->errorOcurred(msadev, QString("LO1 will be above 2200MHz for step %1").arg(stepNumber));
+else if(step.LO1 < 950)
+        msa::getInstance().currentInterface->errorOcurred(msadev, QString("LO1 will be below 950MHz for step %1").arg(stepNumber));
+
+SLIM-PLO-2
+    Frequency output = 940 MHz to 1075 MHz.
+
+if msaMode$="SA" and gentrk=0 then     '117cM
+    if (endfreq-startfreq)/steps >finalbw/1000 then     'compare as MHz
+        message$= "Frequency step size exceeds RBW; signals may be missed."
+        call PrintMessage
+    end if
+end if
+
+PrintMessage
+
+[Command2326R]
+if rcounter <3 then playwave "default.wav":errora$="2326 R counter <3":return    ' Replace all "beep"s with (playwave) '117c19
+if rcounter >16383 then playwave "default.wav":errora$="2326 R counter >16383":return    ' Replace all "beep"s with (playwave) '117c19
+
+[Create2326N]'needed:ncounter ; creates LMX2326 n buffer  ver111
+    Bcounter = int(ncounter/32)
+    Acounter = int(ncounter-(Bcounter*32))
+    if Bcounter < 3 then playwave "default.wav":errora$="2326 Bcounter <3":return    ' Replace all "beep"s with (playwave) '117c19
+    if Bcounter > 8191 then playwave "default.wav":errora$="2326 Bcounter >8191":return    ' Replace all "beep"s with (playwave) '117c19
+    if Bcounter < Acounter then playwave "default.wav":errora$="2326 Bcounter<Acounter":return    ' Replace all "beep"s with (playwave) '117c19
+
+[CreateBaseForDDSarray]'needed:ddsoutput(appx),ddsclock(exact); creates: base, sw0 thru sw39, w0thruw4, ddsoutput(exact) 'ver117c30a
+    'if ddsoutput is greater than ddsclock/2, the program will error out. Check now to make sure.
+        if ddsoutput >= ddsclock/2 then 'halt and create an error message and beep
+        playwave "default.wav":message$="Error, ddsoutput > .5 ddsclock" : call PrintMessage :goto [Halted]    ' Replace all "beep"s with (playwave) '117c19
+        end if

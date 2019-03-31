@@ -54,7 +54,7 @@ public:
 		void *hwconfig;
 		QHash<quint32, pin_data> data;//dataarray containing the serialized bit values for each scan step
 	} devicePin;
-	virtual void processNewScan()=0;
+	virtual bool processNewScan()=0;
 	virtual bool init()=0;
 	virtual void reinit()=0;
 	// gets the type of CLK this device needs, dedicated or system wide
@@ -79,7 +79,7 @@ protected:
 	QHash<int, field_struct> fieldlist;
 	// contains all fields for a given device register
 	QMultiHash<quint64 *, int> fieldsPerRegister;
-	bool setFieldRegister(int field, int value);
+	bool setFieldRegister(int field, quint32 value);
 	int getFieldRegister(int field);
 	virtual bool checkSettings() = 0;
 
@@ -99,11 +99,11 @@ class genericPLL: public hardwareDevice
 	Q_OBJECT
 public:
 	genericPLL(QObject *parent);
-	virtual double getPFD(int step) {return pfd.value(step);}
-	void setPFD(double value, int step){pfd.insert(step, value);}
+	virtual double getPFD(quint32 step) {return pfd.value(step);}
+	void setPFD(double value, quint32 step){pfd.insert(step, value);}
 	virtual int getRCounter() = 0;
 protected:
-	QHash<int, double> pfd;
+	QHash<quint32, double> pfd;
 };
 
 class genericDDS: public hardwareDevice
@@ -111,10 +111,10 @@ class genericDDS: public hardwareDevice
 	Q_OBJECT
 public:
 	genericDDS(QObject *parent);
-	double getDDSOutput(int step) {return ddsout.value(step);}
-	void setDDSOutput(double value, int step) {ddsout.insert(step, value);}
+	double getDDSOutput(quint32 step) {return ddsout.value(step);}
+	void setDDSOutput(double value, quint32 step) {ddsout.insert(step, value);}
 protected:
-	QHash<int, double> ddsout;
+	QHash<quint32, double> ddsout;
 };
 
 #endif // HARDWAREDEVICE_H

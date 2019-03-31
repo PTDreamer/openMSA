@@ -39,7 +39,7 @@ class ad9850 : public genericDDS
 	Q_OBJECT
 public:
 	explicit ad9850(msa::MSAdevice device, QObject *parent = 0);
-	void processNewScan();
+	bool processNewScan();
 	bool init();
 	void reinit();
 	// gets the type of CLK this device needs, dedicated or system wide

@@ -30,6 +30,7 @@
 #include "../ad9850.h"
 #include "../genericadc.h"
 #include "../msa.h"
+#include <QMessageBox>
 
 interface::interface(QObject *parent):QThread(parent)
 {
@@ -57,7 +58,7 @@ interface::~interface()
 	qDeleteAll(msa::getInstance().currentHardwareDevices);
 }
 
-void interface::initScan()
+bool interface::initScan()
 {
 	msa::scanStruct scan = msa::getInstance().currentScan;
 	numberOfSteps = scan.steps.keys().size();
@@ -65,6 +66,7 @@ void interface::initScan()
 		currentStep = numberOfSteps;
 	else
 		currentStep = 0;
+	return true;
 }
 
 void interface::hardwareInit()
@@ -72,4 +74,10 @@ void interface::hardwareInit()
 	foreach (hardwareDevice *dev, msa::getInstance().currentHardwareDevices.values()) {
 		dev->init();
 	}
+}
+
+void interface::errorOcurred(msa::MSAdevice dev , QString text)
+{
+	Q_UNUSED(dev)
+	QMessageBox::critical(nullptr, "Error", text);
 }

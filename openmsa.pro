@@ -35,7 +35,8 @@ SOURCES += main.cpp\
     hardware/controllers/interface.cpp \
     hardware/controllers/usbdevice.cpp \
     hardware/genericadc.cpp \
-    hardware/msa.cpp
+    hardware/msa.cpp \
+    shared/comprotocol.cpp
 
 HEADERS  += mainwindow.h \
     hardware/lmx2326.h \
@@ -47,7 +48,11 @@ HEADERS  += mainwindow.h \
     hardware/controllers/interface.h \
     hardware/controllers/usbdevice.h \
     hardware/genericadc.h \
-    hardware/msa.h
+    hardware/msa.h \
+    shared/comprotocol.h
 
 FORMS   += mainwindow.ui
 LIBS	+= -L./lib -lusb-1.0
+
+DISTFILES += \
+    todo.txt

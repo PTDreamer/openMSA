@@ -22,7 +22,7 @@ public:
 	lmx2326(msa::MSAdevice device, QObject *parent);
 
 	clockType getClk_type() const;
-	void processNewScan();
+	bool processNewScan();
 	bool init();
 	void reinit();
 	~lmx2326();

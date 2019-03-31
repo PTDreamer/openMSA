@@ -50,7 +50,7 @@ hardwareDevice::HWdevice hardwareDevice::getHardwareType()
 	return parser->getDeviceType();
 }
 
-bool hardwareDevice::setFieldRegister(int field, int value)
+bool hardwareDevice::setFieldRegister(int field, quint32 value)
 {
 	field_struct st = fieldlist.value(field);
 	value = value << st.offset;

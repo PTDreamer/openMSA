@@ -33,7 +33,7 @@ class genericADC : public hardwareDevice
 	Q_OBJECT
 public:
 	genericADC(msa::MSAdevice device, hardwareDevice::HWdevice type, QObject *parent = 0);
-	void processNewScan(){}
+	bool processNewScan(){return false;}
 	bool init();
 	void reinit(){}
 	bool checkSettings(){return true;}

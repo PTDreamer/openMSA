@@ -34,27 +34,31 @@ class interface: public QThread
 {
 	Q_OBJECT
 public:
+	enum interface_types {USB};
 	interface(QObject *parent);
 	~interface();
 protected slots:
 	virtual void commandNextStep() = 0;
 	virtual void commandPreviousStep() = 0;
-	virtual void autoScan() = 0;
 	virtual void pauseScan() = 0;
 	virtual void resumeScan() = 0;
 	virtual bool isScanning() = 0;
 public:
-	virtual void initScan();
+	virtual void autoScan() = 0;
+	virtual bool getIsConnected() const = 0;
+	virtual bool init(int debugLevel) = 0;
+	virtual void setWriteReadDelay_us(unsigned long value) = 0;
+	virtual bool initScan();
 	void setScanConfiguration(msa::scanConfig configuration);
 	virtual void hardwareInit();
-
+	void errorOcurred(msa::MSAdevice dev, QString text);
 signals:
 	void dataReady(quint32 step, quint32 magnitude, quint32 phase);
 	void connected();
 	void disconnected();
 protected:
-	qint32 currentStep;
-	qint32 lastCommandedStep;
+	quint32 currentStep;
+	quint32 lastCommandedStep;
 	quint32 numberOfSteps;
 private:
 };

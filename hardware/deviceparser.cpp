@@ -28,6 +28,7 @@
 #include "lmx2326.h"
 #include "ad9850.h"
 #include "genericadc.h"
+#include "../hardware/controllers/interface.h"
 
 deviceParser::~deviceParser()
 {
@@ -87,25 +88,33 @@ double deviceParser::parsePLLRCounter(msa::scanConfig config)
 }
 #define my//qDebug() //qDebug() << fixed << qSetRealNumberPrecision(12)
 
-double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanStep &step, int stepNumber)
+double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanStep &step, quint32 stepNumber, bool &error)
 {
+	error = false;
 	double ncounter = 0;
 	double ncount = 0;
-	genericPLL *lmx = NULL;
+	genericPLL *lmx = nullptr;
 	switch (msadev) {
 	case msa::PLL1:
-		if(stepNumber == (int)HW_INIT_STEP)
+		if(stepNumber == quint32(HW_INIT_STEP))
 			return -1;
 		switch (hwdev) {
 		case hardwareDevice::LMX2326:
-			lmx = (genericPLL*)msa::getInstance().currentHardwareDevices.value(msadev);
+			lmx = dynamic_cast<genericPLL*>(msa::getInstance().currentHardwareDevices.value(msadev));
 			step.LO1 = configuration.baseFrequency + step.translatedFrequency + configuration.LO2 - configuration.finalFilterFrequency;
-
-			my//qDebug() << "LO1 step:"<< stepNumber << step.LO1 <<"="<< configuration.baseFrequency <<"+"<< step.translatedFrequency <<"+"<< configuration.LO2 <<"-"<< configuration.finalFilterFrequency;
+			if(step.LO1 > 2200) {
+				msa::getInstance().currentInterface->errorOcurred(msadev, QString("LO1 will be above 2200MHz for step %1").arg(stepNumber));
+				error = true;
+			}
+			else if(step.LO1 < 950) {
+				msa::getInstance().currentInterface->errorOcurred(msadev, QString("LO1 will be below 950MHz for step %1").arg(stepNumber));
+				error = true;
+			}
+			//my//qDebug() << "LO1 step:"<< stepNumber << step.LO1 <<"="<< configuration.baseFrequency <<"+"<< step.translatedFrequency <<"+"<< configuration.LO2 <<"-"<< configuration.finalFilterFrequency;
 			ncount = step.LO1/(configuration.appxdds1/ lmx->getRCounter()); //approximates the Ncounter for PLL
-			ncounter = (int)round(ncount); //approximates the ncounter for PLL
+			ncounter = int(round(ncount)); //approximates the ncounter for PLL
 			lmx->setPFD(step.LO1/ncounter, stepNumber);//approx phase freq of PLL
-			my//qDebug()<< "PLL1 "<< "step:"<<stepNumber << "PFD:"<<step.LO1/ncounter;
+			//my//qDebug()<< "PLL1 "<< "step:"<<stepNumber << "PFD:"<<step.LO1/ncounter;
 			break;
 		default:
 			break;
@@ -114,9 +123,9 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 	case msa::PLL2:
 		switch (hwdev) {
 		case hardwareDevice::LMX2326:
-			lmx = (genericPLL*)msa::getInstance().currentHardwareDevices.value(msadev);
+			lmx = dynamic_cast<genericPLL*>(msa::getInstance().currentHardwareDevices.value(msadev));
 			ncount = configuration.LO2/(configuration.masterOscilatorFrequency / lmx->getRCounter()); //approximates the Ncounter for PLL
-			ncounter = (int)round(ncount); //approximates the ncounter for PLL
+			ncounter = int(round(ncount)); //approximates the ncounter for PLL
 			lmx->setPFD(configuration.LO2/ncounter, stepNumber);//approx phase freq of PLL
 			break;
 		default:
@@ -125,11 +134,11 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 		break;
 	case msa::PLL3:
 		step.LO3 = 0;
-		if(stepNumber == (int)HW_INIT_STEP)
+		if(stepNumber == quint32(HW_INIT_STEP))
 			return -1;
 		switch (hwdev) {
 		case hardwareDevice::LMX2326:
-			lmx = (genericPLL*)msa::getInstance().currentHardwareDevices.value(msadev);
+			lmx = dynamic_cast<genericPLL*>(msa::getInstance().currentHardwareDevices.value(msadev));
 			if(configuration.scanType == msa::SA_TG) {
 				if(!configuration.TGreversed) {
 					if(step.band == 3) {
@@ -141,7 +150,7 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 				}
 				else {
 					double reversedFrequency;
-					int reversedIndex = msa::getInstance().currentScan.steps.size() - stepNumber - 1;
+					quint32 reversedIndex = uint(msa::getInstance().currentScan.steps.size()) - stepNumber - 1;
 					if(step.band == 1)
 						reversedFrequency = msa::getInstance().currentScan.steps.value(reversedIndex).realFrequency;
 					else
@@ -163,8 +172,16 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 			}
 			if(lmx) {
 				ncount = step.LO3/(configuration.appxdds3/ lmx->getRCounter()); //approximates the Ncounter for PLL
-				ncounter = (int)round(ncount); //approximates the ncounter for PLL
+				ncounter = int(round(ncount)); //approximates the ncounter for PLL
 				lmx->setPFD(step.LO3/ncounter, stepNumber);//approx phase freq of PLL
+			}
+			if(step.LO1 > 2200) {
+				msa::getInstance().currentInterface->errorOcurred(msadev, QString("LO1 will be above 2200MHz for step %1").arg(stepNumber));
+				error = true;
+			}
+			else if(step.LO1 < 950) {
+				msa::getInstance().currentInterface->errorOcurred(msadev, QString("LO1 will be below 950MHz for step %1").arg(stepNumber));
+				error = true;
 			}
 			break;
 		default:
@@ -182,20 +199,16 @@ bool deviceParser::getPLLinverted(msa::scanConfig config)
 	switch (msadev) {
 	case msa::PLL1:
 		return config.PLL1phasepolarity_inverted;
-		break;
 	case msa::PLL2:
 		return config.PLL2phasepolarity_inverted;
-		break;
 	case msa::PLL3:
 		return config.PLL3phasepolarity_inverted;
-		break;
 	default:
 		return false;
-		break;
 	}
 }
 
-quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, int stepNumber, bool &error)
+quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, quint32 stepNumber, bool &error)
 {
 	error = false;
 	double ddsoutput = 0;
@@ -217,10 +230,13 @@ quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, int stepNumb
 				base = round(fullbase);
 				//When entering this routine, ddsoutput was approximate. Now, the exact ddsoutput can be determined by:
 				ddsoutput = base*msa::getInstance().currentScan.configuration.masterOscilatorFrequency/pow(2,32);  //117c19
-				((genericDDS*)msa::getInstance().currentHardwareDevices.value(msa::DDS1))->setDDSOutput(ddsoutput, stepNumber);
+				(dynamic_cast<genericDDS*>(msa::getInstance().currentHardwareDevices.value(msa::DDS1)))->setDDSOutput(ddsoutput, stepNumber);
 			//	//qDebug() << qSetRealNumberPrecision( 10 ) << "target freq"<< scan.steps[step].frequency << "ddsoutput" << ddsoutput << "VCO" <<getVcoFrequency(ddsoutput) << "DIFF" <<10.7 - (1024 - getVcoFrequency(ddsoutput));
-				if((ddsoutput - configuration.appxdds1) > (configuration.dds1Filterbandwidth / 2))
+                if(qAbs(ddsoutput - configuration.appxdds1) > (configuration.dds1Filterbandwidth / 2)) {
 						error = true;
+						msa::getInstance().currentInterface->errorOcurred(msadev, QString(
+					"DDS1 output would be outside its output filter bandwidth for step %1").arg(stepNumber));
+				}
 			break;
 		default:
 			break;
@@ -242,8 +258,11 @@ quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, int stepNumb
 				ddsoutput = base*msa::getInstance().currentScan.configuration.masterOscilatorFrequency/pow(2,32);  //117c19
 				((genericDDS*)msa::getInstance().currentHardwareDevices.value(msa::DDS3))->setDDSOutput(ddsoutput, stepNumber);
 			//	//qDebug() << qSetRealNumberPrecision( 10 ) << "target freq"<< scan.steps[step].frequency << "ddsoutput" << ddsoutput << "VCO" <<getVcoFrequency(ddsoutput) << "DIFF" <<10.7 - (1024 - getVcoFrequency(ddsoutput));
-				if((ddsoutput- configuration.appxdds3) > (configuration.dds3Filterbandwidth / 2))
+				if((ddsoutput- configuration.appxdds3) > (configuration.dds3Filterbandwidth / 2)) {
 						error = true;
+						msa::getInstance().currentInterface->errorOcurred(msadev, QString(
+					"DDS3 output would be outside its output filter bandwidth for step %1").arg(stepNumber));
+				}
 			break;
 		default:
 			break;
@@ -252,5 +271,5 @@ quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, int stepNumb
 	default:
 		break;
 	}	
-	return base;
+	return static_cast<quint32>(base);
 }

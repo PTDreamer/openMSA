@@ -25,6 +25,7 @@
  */
 #include "ad9850.h"
 #include <QDebug>
+#include "../hardware/controllers/interface.h"
 
 ad9850::ad9850(msa::MSAdevice device, QObject *parent) : genericDDS(parent)
 {
@@ -64,12 +65,15 @@ ad9850::ad9850(msa::MSAdevice device, QObject *parent) : genericDDS(parent)
 	devicePins.insert(PIN_VIRTUAL_CLOCK, pin);
 }
 
-void ad9850::processNewScan()
+bool ad9850::processNewScan()
 {
 	bool error; //TODO CHECK ERRORS
+	bool hadErrors = false;
 	QList<quint32> steps = msa::getInstance().currentScan.steps.keys();
 	std::sort(steps.begin(), steps.end());
-	foreach (int step, steps) {
+	foreach (quint32 step, steps) {
+        if(initIndexes.contains(step))
+            continue;
 		quint32 base = parser->parseDDSOutput(msa::getInstance().currentScan.configuration, step, error);
 		//qDebug()<<"DDS:" << "step:"<<step<<" "<< base;
 		if(!error) {
@@ -77,11 +81,15 @@ void ad9850::processNewScan()
 			registerToBuffer(&deviceRegister, PIN_DATA, step);
 			config[step] = deviceRegister;
 		}
+		else {
+			hadErrors = true;
+		}
 	}
 //	foreach(int x, devicePins.value(PIN_DATA)->data.keys()) {
 //		QBitArray *arr = devicePins.value(PIN_DATA)->data.value(x).dataArray;
 //		////qDebug() << "ad9850" << getDDSOutput(x) << *arr;
 //	}
+	return hadErrors;
 }
 
 bool ad9850::init()
@@ -134,7 +142,7 @@ void ad9850::registerToBuffer(quint64 *reg, int pin, quint32 step)
 	quint64 r = *reg;
 	for(int x = 0; x < registerSize; ++ x) {
 		(*arrayMask)[x] = 1;
-		(*arrayData)[x] = r & (quint64)1;
+		(*arrayData)[x] = r & static_cast<quint64>(1);
 		r = r >> 1;
 	}
 }

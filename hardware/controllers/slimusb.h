@@ -51,7 +51,7 @@ public:
 	bool getAutoConnect() const;
 	void setAutoConnect(bool value);
 	bool getIsConnected() const;
-	void initScan();
+	bool initScan();
 	void hardwareInit();
 	unsigned long getWriteReadDelay_us() const;
 	void setWriteReadDelay_us(unsigned long value);
@@ -124,14 +124,14 @@ private:
 	QBitArray *pll2array;
 	QBitArray *dds3array;
 	QHash<uint8_t, uint8_t> latchToUSBNumber;
-	void commandStep(int step);
-	void commandInitStep(hardwareDevice *dev, int step);
+	void commandStep(quint32 step);
+	void commandInitStep(hardwareDevice *dev, quint32 step);
 	void sendUSB(QByteArray data, uint8_t latch, bool autoClock, bool isADC = false);
 	QString byteToString(uint8_t byte);
 	QString constructString(uint8_t latch1, uint8_t latch2, uint8_t latch3, uint8_t latch4, QString clock);
 	void usbToString(QByteArray array, bool print, int temp);
 	QHash<quint32, QByteArray *> usbData;
-	void printUSBData(int step);
+	void printUSBData(quint32 step);
 	QByteArray adcSend;
 	int expectedAdcSize;
 };

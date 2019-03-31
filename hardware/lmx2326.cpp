@@ -1,5 +1,6 @@
 #include "lmx2326.h"
 #include <QDebug>
+#include "../hardware/controllers/interface.h"
 
 lmx2326::lmx2326(msa::MSAdevice device, QObject *parent):genericPLL(parent)
 {
@@ -92,8 +93,10 @@ hardwareDevice::clockType lmx2326::getClk_type() const
 	return hardwareDevice::CLOCK_RISING_EDGE;
 }
 
-void lmx2326::processNewScan()
+bool lmx2326::processNewScan()
 {
+	bool error;
+	bool hasError = false;
 	//qDebug() << "lmx2326 starting processNewScan";
 	double ncounter = 0;
 	double Bcounter = 0;
@@ -102,14 +105,20 @@ void lmx2326::processNewScan()
 	index.append(msa::getInstance().currentScan.steps.keys());
 	std::sort(index.begin(), index.end());
 
-	foreach (int step, index) {
+	foreach (quint32 step, index) {
 		if(initIndexes.contains(step))
 				continue;
-		ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, msa::getInstance().currentScan.steps[step],step);
+		ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, msa::getInstance().currentScan.steps[step],step, error);
+		if(error)
+			hasError = true;
 		Bcounter = floor(ncounter/32);
 		Acounter = round(ncounter-(Bcounter*32));
-		setFieldRegister(N_CC, (int)control_field::NCOUNTER);
-		setFieldRegister(N_CPGAIN_BIT, (int)cp_gain::HIGH);//Phase Det Current, 1= 1 ma, 0= 250 ua
+		if(Acounter < 0 || Acounter > 31 || Bcounter < 3 || Bcounter > 8191 || Acounter > Bcounter) {
+			hasError = true;
+			msa::getInstance().currentInterface->errorOcurred(parser->getDevice(), QString("There was a problem with the PLL register settings for step %1").arg(step));
+		}
+		setFieldRegister(N_CC, int(control_field::NCOUNTER));
+		setFieldRegister(N_CPGAIN_BIT, int(cp_gain::HIGH));//Phase Det Current, 1= 1 ma, 0= 250 ua
 		registerToBuffer(&s.ncounter, PIN_DATA, step);
 		addLEandCLK(step);
 		config[step] = s;
@@ -117,22 +126,24 @@ void lmx2326::processNewScan()
 		//qDebug() << "step:"<<convertToStr(&s.ncounter);
 
 	}
+	return hasError;
 }
 
 bool lmx2326::init()
 {
-	setFieldRegister(R_CC, (int)control_field::RCOUNTER);
-	setFieldRegister(N_CC, (int)control_field::NCOUNTER);
-	setFieldRegister(L_CC, (int)control_field::INIT);
+	bool error;
+	setFieldRegister(R_CC, int(control_field::RCOUNTER));
+	setFieldRegister(N_CC, int(control_field::NCOUNTER));
+	setFieldRegister(L_CC, int(control_field::INIT));
 	setFieldRegister(L_POWER_DOWN_MODE, 0);
 	setFieldRegister(L_COUNTER_RESET, 0);
 	setFieldRegister(L_POWER_DOWN, 0);
-	setFieldRegister(L_FO_LD, (int)FoLD_field::TRI_STATE);
+	setFieldRegister(L_FO_LD, int(FoLD_field::TRI_STATE));
 	if(parser->getPLLinverted((msa::getInstance().currentScan.configuration)))
-		setFieldRegister(L_PH_DET_POLARITY, (int)phase_detector::INVERTED);
+		setFieldRegister(L_PH_DET_POLARITY, int(phase_detector::INVERTED));
 	else
-		setFieldRegister(L_PH_DET_POLARITY, (int)phase_detector::NON_INVERTED);
-	setFieldRegister(L_CP, (int)cp_tri_state::NORMAL);
+		setFieldRegister(L_PH_DET_POLARITY, int(phase_detector::NON_INVERTED));
+	setFieldRegister(L_CP, int(cp_tri_state::NORMAL));
 	setFieldRegister(L_FASTLOCK, 0);
 	setFieldRegister(L_TIMEOUT, 0);
 	setFieldRegister(L_TESTMODES, 0);
@@ -154,7 +165,7 @@ bool lmx2326::init()
 	config[HW_INIT_STEP] = s;
 	double rcounter = parser->parsePLLRCounter(msa::getInstance().currentScan.configuration);//10.7/0.974 = 11
 	//qDebug()<<"RCOUNTER"<<rcounter;
-	setFieldRegister(R_DIVIDER, rcounter);
+    setFieldRegister(R_DIVIDER, quint32(rcounter));
 	setFieldRegister(R_LD, 0);
 	setFieldRegister(R_TESTMODES, 0);
 	registerToBuffer(&s.rcounter, PIN_DATA, HW_INIT_STEP -1);
@@ -165,21 +176,21 @@ bool lmx2326::init()
 	initIndexes.append(HW_INIT_STEP - 1);
 	msa::scanStep st;
 	msa::getInstance().currentScan.steps.insert(HW_INIT_STEP, st);
-	double ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, msa::getInstance().currentScan.steps[HW_INIT_STEP],HW_INIT_STEP);
+	double ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, msa::getInstance().currentScan.steps[HW_INIT_STEP],HW_INIT_STEP, error);
 	if(ncounter > 0) {
 		double Bcounter = floor(ncounter/32);
 		double Acounter = round(ncounter-(Bcounter*32));
 		//qDebug() << "PLL2 Acounter" << Acounter << "Bcounter" << Bcounter;
-		setFieldRegister(N_ACOUNTER_DIVIDER, Acounter);
-		setFieldRegister(N_BCOUNTER_DIVIDER, Bcounter);
-		setFieldRegister(N_CC, (int)control_field::NCOUNTER);
-		setFieldRegister(N_CPGAIN_BIT, (int)cp_gain::HIGH);//Phase Det Current, 1= 1 ma, 0= 250 ua
+		setFieldRegister(N_ACOUNTER_DIVIDER, quint32(Acounter));
+		setFieldRegister(N_BCOUNTER_DIVIDER, quint32(Bcounter));
+		setFieldRegister(N_CC, int(control_field::NCOUNTER));
+		setFieldRegister(N_CPGAIN_BIT, int(cp_gain::HIGH));//Phase Det Current, 1= 1 ma, 0= 250 ua
 		registerToBuffer(&s.ncounter, PIN_DATA, HW_INIT_STEP-2);
 		addLEandCLK(HW_INIT_STEP - 2);
 		initIndexes.append(HW_INIT_STEP - 2);
 	}
 	config[HW_INIT_STEP - 2] = s;
-	return true;
+	return !error;
 }
 
 void lmx2326::reinit()

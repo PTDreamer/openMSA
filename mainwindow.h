@@ -8,6 +8,8 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QMutexLocker>
+#include "shared/comprotocol.h"
+#include "QSettings"
 
 namespace Ui {
 class MainWindow;
@@ -18,8 +20,11 @@ class MainWindow : public QMainWindow
 	Q_OBJECT
 
 public:
-	explicit MainWindow(QWidget *parent = 0);
+	explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
+
+	quint16 getServerPort() const;
+	void setServerPort(const quint16 &value);
 
 private slots:
 	void on_pushButton_clicked();
@@ -27,14 +32,18 @@ private slots:
 	void on_Connect();
 	void on_Disconnect();
 	void newConnection();
+	void onMessageReceivedServer(ComProtocol::messageType, QByteArray);
 private:
 	Ui::MainWindow *ui;
 	QHash<msa::MSAdevice, int> devices;
-	slimusb *s;
-	QTcpServer *server;
-	QTcpSocket *socket;
+	interface *hwInterface;
 	QMutex mutex;
 	bool isConnected;
+
+	quint16 serverPort;
+	ComProtocol *server;
+
+	QSettings *settings;
 };
 
 #endif // MAINWINDOW_H

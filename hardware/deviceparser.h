@@ -37,9 +37,9 @@ class deviceParser:public QObject
 public:
 	deviceParser(msa::MSAdevice dev, hardwareDevice *parent);
 	double parsePLLRCounter(msa::scanConfig config);
-	double parsePLLNCounter(msa::scanConfig configuration, msa::scanStep &step, int stepNumber);
+	double parsePLLNCounter(msa::scanConfig configuration, msa::scanStep &step, quint32 stepNumber, bool &error);
 	bool getPLLinverted(msa::scanConfig config);
-	quint32 parseDDSOutput(msa::scanConfig configuration, int stepNumber, bool &error);
+	quint32 parseDDSOutput(msa::scanConfig configuration, quint32 stepNumber, bool &error);
 	hardwareDevice::HWdevice getDeviceType() {return hwdev;}
 	msa::MSAdevice getDevice() {return msadev;}
 	~deviceParser();

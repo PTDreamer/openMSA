@@ -61,7 +61,8 @@ void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 			break;
 		case hardwareDevice::AD7685:
 		case hardwareDevice::LT1865:
-			currentHardwareDevices.insert(dev, new genericADC(dev, (hardwareDevice::HWdevice)devices.value(dev), usedInterface));
+			currentHardwareDevices.insert(dev, new genericADC(dev, hardwareDevice::HWdevice(devices.value(dev)), usedInterface));
+			break;
 		default:
 			break;
 		}
@@ -69,12 +70,12 @@ void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 	currentInterface->hardwareInit();
 }
 
-void msa::initScan(bool inverted, double start, double end, int steps, int band)
+void msa::initScan(bool inverted, double start, double end, quint32 steps, int band)
 {
-	double step = (end - start) / (double)steps;
+	double step = (end - start) / double(steps);
 	int thisBand = 0;
 	int bandSelect = 0;
-	for(int x = 0; x < steps; ++x) {
+    for(quint32 x = 0; x < steps; ++x) {
 		msa::scanStep s;
 		s.realFrequency = start + (x * step);
 		if(band < 0) {
@@ -105,6 +106,7 @@ void msa::initScan(bool inverted, double start, double end, int steps, int band)
 		s.band = bandSelect;
 		//qDebug() << "step:" << x << "real frequency:" << s.realFrequency << "translated frequency:" << s.translatedFrequency;
 		msa::getInstance().currentScan.steps.insert(x, s);
+        qDebug() << msa::getInstance().currentScan.steps.keys().length() << "x:" << x << " s:" << s.LO1;
 	}
 	isInverted = inverted;
 	currentInterface->initScan();
@@ -112,7 +114,7 @@ void msa::initScan(bool inverted, double start, double end, int steps, int band)
 
 void msa::initScan(bool inverted, double start, double end, double step_freq, int band)
 {
-	int steps = (end - start) / step_freq;
+    quint32 steps = quint32((end - start) / step_freq);
 	initScan(inverted, start, end, steps, band);
 }
 
