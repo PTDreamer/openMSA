@@ -72,6 +72,7 @@ void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 
 void msa::initScan(bool inverted, double start, double end, quint32 steps, int band)
 {
+	msa::getInstance().currentScan.steps.clear();
 	double step = (end - start) / double(steps);
 	int thisBand = 0;
 	int bandSelect = 0;
@@ -106,7 +107,6 @@ void msa::initScan(bool inverted, double start, double end, quint32 steps, int b
 		s.band = bandSelect;
 		//qDebug() << "step:" << x << "real frequency:" << s.realFrequency << "translated frequency:" << s.translatedFrequency;
 		msa::getInstance().currentScan.steps.insert(x, s);
-        qDebug() << msa::getInstance().currentScan.steps.keys().length() << "x:" << x << " s:" << s.LO1;
 	}
 	isInverted = inverted;
 	currentInterface->initScan();

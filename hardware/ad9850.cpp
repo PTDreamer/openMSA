@@ -79,6 +79,9 @@ bool ad9850::processNewScan()
 		if(!error) {
 			setFieldRegister(FIELD_FREQUENCY, base);
 			registerToBuffer(&deviceRegister, PIN_DATA, step);
+			if(parser->getDevice() == msa::DDS1 && msa::getInstance().currentInterface->getDebugLevel() > 2) {
+				qDebug() << "DDS1 step:" << step  << " base:"<<base<<" array" << convertToStr(&deviceRegister);
+			}
 			config[step] = deviceRegister;
 		}
 		else {
@@ -97,14 +100,15 @@ bool ad9850::init()
 	foreach (int key, devicePins.keys()) {
 		devicePins.value(key)->data.insert(HW_INIT_STEP, createPinData(0));
 	}
-	QString clkd = "11110 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";//1
-	QString clkm = "10011 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";
-	QString fqud = "01000 10 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 10";//2
-	QString fqum = "01100 11 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 11";
-	QString datd = "00000 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";
-	QString datm = "00000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 00";
-	QString vcld = "00000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 00";
-	QString vclm = "00000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 10";
+	//WCLK up, then FQUD up, then FQUD down, then WCLK down
+	QString clkd = "1110 010 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";//1
+	QString clkm = "1001 111 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";
+	QString fqud = "0100 000 10 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 10";//2
+	QString fqum = "0110 000 11 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 11";
+	QString datd = "0000 000 00 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 00";
+	QString datm = "0000 000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 00";
+	QString vcld = "0000 000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 00";
+	QString vclm = "0000 000 00 1111 1111 1111 1111 1111 1111 1111 1111 1111 1111 10";
 
 	convertStringToBitArray(clkd, devicePins.value(PIN_WCLK)->data.value(HW_INIT_STEP).dataArray);
 	convertStringToBitArray(clkm, devicePins.value(PIN_WCLK)->data.value(HW_INIT_STEP).dataMask);

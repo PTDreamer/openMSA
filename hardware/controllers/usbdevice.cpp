@@ -188,14 +188,14 @@ int usbdevice::enableCallBack(bool enable)
 	once = false;
 	if(enable && !callbackEnabled) {
 		int rc;
-		libusb_init(NULL);
-		rc = libusb_hotplug_register_callback(NULL, (libusb_hotplug_event)(LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED |
-																		   LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT), (libusb_hotplug_flag)LIBUSB_HOTPLUG_ENUMERATE, G8_VID, G8_PID,
-											  LIBUSB_HOTPLUG_MATCH_ANY, (libusb_hotplug_callback_fn)usbdevice::hotplug_callback, this,
+		libusb_init(nullptr);
+		rc = libusb_hotplug_register_callback(nullptr, libusb_hotplug_event(LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED |
+																		   LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT), libusb_hotplug_flag(LIBUSB_HOTPLUG_ENUMERATE), G8_VID, G8_PID,
+											  LIBUSB_HOTPLUG_MATCH_ANY, libusb_hotplug_callback_fn(usbdevice::hotplug_callback), this,
 											  &handle);
 		if (LIBUSB_SUCCESS != rc) {
 			printf("Error creating a hotplug callback\n");
-			libusb_exit(NULL);
+			libusb_exit(nullptr);
 			return false;
 		}
 		w = new hotplugWorker;
@@ -211,8 +211,8 @@ int usbdevice::enableCallBack(bool enable)
 		if(w)
 			w->quit();
 		worker.quit();
-		libusb_hotplug_deregister_callback(NULL, handle);
-		libusb_exit(NULL);
+		libusb_hotplug_deregister_callback(nullptr, handle);
+		libusb_exit(nullptr);
 		callbackEnabled = false;
 		return true;
 	}
@@ -266,12 +266,11 @@ bool usbdevice::sendArray(QByteArray data)
 	{
 		if(usbdevice::deviceHandler)
 			libusb_close(usbdevice::deviceHandler);
-		usbdevice::deviceHandler = NULL;
+		usbdevice::deviceHandler = nullptr;
 		emit disconnected();
 		return false;
 	}
 	return true;
-	//Q_ASSERT(actual == data.size());
 }
 
 int LIBUSB_CALL usbdevice::hotplug_callback(struct libusb_context *ctx, struct libusb_device *dev, libusb_hotplug_event event, void *user_data) {

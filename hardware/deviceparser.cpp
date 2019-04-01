@@ -86,7 +86,7 @@ double deviceParser::parsePLLRCounter(msa::scanConfig config)
 	}
 	return ret;
 }
-#define my//qDebug() //qDebug() << fixed << qSetRealNumberPrecision(12)
+#define myDebug() qDebug() << fixed << qSetRealNumberPrecision(12)
 
 double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanStep &step, quint32 stepNumber, bool &error)
 {
@@ -110,11 +110,13 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 				msa::getInstance().currentInterface->errorOcurred(msadev, QString("LO1 will be below 950MHz for step %1").arg(stepNumber));
 				error = true;
 			}
-			//my//qDebug() << "LO1 step:"<< stepNumber << step.LO1 <<"="<< configuration.baseFrequency <<"+"<< step.translatedFrequency <<"+"<< configuration.LO2 <<"-"<< configuration.finalFilterFrequency;
 			ncount = step.LO1/(configuration.appxdds1/ lmx->getRCounter()); //approximates the Ncounter for PLL
 			ncounter = int(round(ncount)); //approximates the ncounter for PLL
 			lmx->setPFD(step.LO1/ncounter, stepNumber);//approx phase freq of PLL
-			//my//qDebug()<< "PLL1 "<< "step:"<<stepNumber << "PFD:"<<step.LO1/ncounter;
+			if(msa::getInstance().currentInterface->getDebugLevel() > 2) {
+				myDebug() << "LO1 step:"<< stepNumber << step.LO1 <<"="<< configuration.baseFrequency <<"+"<< step.translatedFrequency <<"+"<< configuration.LO2 <<"-"<< configuration.finalFilterFrequency;
+				myDebug()<< "PLL1 "<< "step:"<<stepNumber << "PFD:"<<step.LO1/ncounter;
+			}
 			break;
 		default:
 			break;
@@ -225,6 +227,7 @@ quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, quint32 step
 				//ddsoutput = base*ddsclock/2^32, where "base" is the decimal equivalent of command words
 				//to find "base", first:
 				fullbase=(ddsoutput*pow(2,32)/configuration.masterOscilatorFrequency); //decimal number, including fraction
+
 				//qDebug()<< "ddsoutput" << ddsoutput <<"=pfd:"<< ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL1))->getPFD(stepNumber) << "* rcounter:"<< ((genericPLL*)msa::getInstance().currentHardwareDevices.value(msa::PLL1))->getRCounter() << "  fullbase:"<< fullbase;
 				//then, round off fraction to the nearest whole number
 				base = round(fullbase);
@@ -236,6 +239,9 @@ quint32 deviceParser::parseDDSOutput(msa::scanConfig configuration, quint32 step
 						error = true;
 						msa::getInstance().currentInterface->errorOcurred(msadev, QString(
 					"DDS1 output would be outside its output filter bandwidth for step %1").arg(stepNumber));
+				}
+				if(msa::getInstance().currentInterface->getDebugLevel() > 2) {
+					myDebug() << "DD1 step" << stepNumber << " ddsoutput=" << ddsoutput << " base:" << base << " fullbase:"<<fullbase;
 				}
 			break;
 		default:

@@ -26,7 +26,7 @@
 #include "comprotocol.h"
 #include <QDebug>
 
-ComProtocol::ComProtocol(QObject *parent) : QObject(parent),serverPort(1234),socket(nullptr), bytesWaitingToBeSent(0),msgNumber(0)
+ComProtocol::ComProtocol(QObject *parent, int debugLevel) : QObject(parent),serverPort(1234),socket(nullptr), bytesWaitingToBeSent(0),msgNumber(0),debugLevel(debugLevel)
 {
 	messageSize.insert(DUAL_DAC, sizeof (msg_dual_dac));
 	messageSize.insert(PH_DAC, sizeof (msg_ph_dac));
@@ -34,7 +34,6 @@ ComProtocol::ComProtocol(QObject *parent) : QObject(parent),serverPort(1234),soc
 
 	QList<unsigned long> sizes = messageSize.values();
 	double max = *std::max_element(sizes.begin(), sizes.end());
-	qDebug() << max;
 	startOfData = 3 + sizeof (quint32);
 	messageSendBuffer.resize(int(max + startOfData + sizeof (quint16) + 1));
 	messageSendBuffer[0] = SYNC_BYTE;
@@ -51,12 +50,14 @@ bool ComProtocol::startServer()
 
 	if(!server->listen(QHostAddress::Any, serverPort))
 	{
-		qDebug() << "Server could not start!";
+		if(debugLevel > 0)
+			qDebug() << "Server could not start!";
 		return false;
 	}
 	else
 	{
-		qDebug() << "Server started!";
+		if(debugLevel > 0)
+			qDebug() << "Server started!";
 		return true;
 	}
 }
@@ -75,8 +76,8 @@ bool ComProtocol::connectToServer()
 		connect(socket, SIGNAL(disconnected()), this, SLOT(clientDisconnected()));
 		connect(socket, SIGNAL(readyRead()), this, SLOT(processReceivedMessage()));
 	}
-	if(socket->isOpen())
-		socket->close();
+	if(socket->state() == QTcpSocket::ConnectedState)
+		socket->disconnectFromHost();
 
 	qDebug() << "Connecting,..";
 
@@ -93,12 +94,13 @@ void ComProtocol::sendMessage(messageType type, messageCommandType command, void
 	bytesWaitingToBeSentLock.lock();
 	prepareMessage(type, command, data);
 //	qDebug() << "isSocketOpen?:"<< socket->isOpen();
-	if(socket && socket->isOpen()) {
+	if(socket && socket->state() == QTcpSocket::ConnectedState) {
 		qint64 size = messageSendBuffer.at(messageSendBuffer.length() -1);
 		bytesWaitingToBeSent += size;
 		socket->write(messageSendBuffer.constData(), messageSendBuffer.at(messageSendBuffer.length() -1));
 	}
-	qDebug() << "bytesWaitingToBeSent:"<< bytesWaitingToBeSent;
+	if(debugLevel > 2)
+		qDebug() << "bytesWaitingToBeSent:"<< bytesWaitingToBeSent;
 	bytesWaitingToBeSentLock.unlock();
 }
 
@@ -125,7 +127,7 @@ void ComProtocol::setAutoClientReconnection(bool value)
 bool ComProtocol::isConnected()
 {
     if(socket)
-        return socket->isOpen();
+		return socket->state() == QTcpSocket::ConnectedState;
     else {
         return  false;
     }
@@ -179,7 +181,7 @@ void ComProtocol::newConnection()
 {
 	qDebug() << "Server new connection";
 	if(socket) {
-		if(socket->isOpen())
+		if(socket->state() == QTcpSocket::ConnectedState)
 			socket->close();
 		delete socket;
 	}
@@ -193,12 +195,13 @@ void ComProtocol::bytesWritten(qint64 count)
 {
 	bytesWaitingToBeSentLock.lock();
 	bytesWaitingToBeSent -=count;
+	if(debugLevel > 2)
+		qDebug() << "bytesWaiting" << bytesWaitingToBeSent;
 	bytesWaitingToBeSentLock.unlock();
 }
 
 void ComProtocol::processReceivedMessage()
 {
-	qDebug() << "processReceivedMessage";
 	typedef enum {LOOKING_FOR_SYNC, LOOKING_FOR_MSG_TYPE, LOOKING_FOR_MSG_CHECKSUM}status;
 	static QByteArray receiveBuffer;
 	static status currentStatus = status::LOOKING_FOR_SYNC;

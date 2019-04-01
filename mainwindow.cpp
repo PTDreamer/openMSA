@@ -39,14 +39,14 @@ MainWindow::MainWindow(QWidget *parent) :
 //	s.openDevice(3);
 
 	settings = new QSettings("JBTech", "OpenMSA", this);
+	settings->clear();
 	setServerPort(static_cast<quint16>(settings->value("app/serverPort", 1234).toInt()));
-	server = new ComProtocol;
+	server = new ComProtocol(this, settings->value("app/debugLevel", 0).toInt());
 	server->setServerPort(getServerPort());
 	if(!server->startServer())
 		QMessageBox::critical(this, "Socket server failed to start","Please fix the issue and restart the application");
 	connect(server, &ComProtocol::serverConnected, this, &MainWindow::newConnection);
 	connect(server, &ComProtocol::packetReceived, this, &MainWindow::onMessageReceivedServer);
-
 	if(settings->value("app/connectionType", interface::USB).toInt() == interface::USB)
 		hwInterface = new slimusb(this);
 	connect(hwInterface, SIGNAL(dataReady(quint32,quint32,quint32)), this, SLOT(dataReady(quint32, quint32, quint32)));
@@ -58,7 +58,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	devices.insert(msa::DDS3, settings->value("msa/hardwareTypes/DDS1", static_cast <int>(hardwareDevice::AD9850)).toInt());
 	devices.insert(msa::ADC_MAG, settings->value("msa/hardwareTypes/ADC_MAG", static_cast <int>(hardwareDevice::AD7685)).toInt());
 	devices.insert(msa::ADC_PH, settings->value("msa/hardwareTypes/ADC_PH", static_cast <int>(hardwareDevice::AD7685)).toInt());
-	hwInterface->init(settings->value("app/debugLevel", 3).toInt());
+	hwInterface->init(settings->value("app/debugLevel", 0).toInt());
 	msa::scanConfig config;
 	config.LO2 = static_cast <double>(settings->value("msa/hardwareConfig/LO2", 1024).toFloat());
 	config.appxdds1 = static_cast <double>(settings->value("msa/hardwareConfig/appxdds1", 10.7).toFloat());
@@ -80,7 +80,7 @@ MainWindow::MainWindow(QWidget *parent) :
 	config.adcAveraging = 2;
 	config.TGoffset = 0;
 	config.TGreversed = false;
-	config.SGout = 0;
+	config.SGout = 10;
 	msa::getInstance().setScanConfiguration(config);
 
 	isConnected = false;
@@ -90,7 +90,8 @@ MainWindow::MainWindow(QWidget *parent) :
 	connect(hwInterface,SIGNAL(disconnected()), this,SLOT(on_Disconnect()));
 
 //	msa::getInstance().hardwareInit(devices, hwInterface);
-//	msa::getInstance().initScan(false, -0.0375, 0.0375, 0.075/400);
+//	msa::getInstance().initScan(false, -0.075, 0.075, 0.15/400);
+//	hwInterface->autoScan();
 }
 
 MainWindow::~MainWindow()
@@ -104,10 +105,9 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::dataReady(quint32 step, quint32 mag, quint32 phase)
 {
-	qDebug() << "received step:" << step << "MAG=" << mag << "PHASE=" << phase;
-	QString str;
-	str=QString("S%1V%2E").arg(step).arg(mag);
-    if(server->isConnected()) {
+	if(msa::getInstance().currentInterface->getDebugLevel() > 2)
+		qDebug() << "received step:" << step << "MAG=" << mag << "PHASE=" << phase;
+	if(server->isConnected()) {
         ComProtocol::msg_dual_dac dac;
         dac.mag = mag;
         dac.phase = phase;

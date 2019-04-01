@@ -62,7 +62,7 @@ public:
 
 	QHash<messageType, unsigned long> messageSize;
 	QByteArray messageSendBuffer;
-	explicit ComProtocol(QObject *parent = nullptr);
+	explicit ComProtocol(QObject *parent, int debugLevel);
 
 	bool startServer();
 	bool startServer(quint16 port);
@@ -93,6 +93,7 @@ private:
 	bool autoClientReconnection;
 	QTimer clientReconnectTimer;
 	quint32 msgNumber;
+	int debugLevel;
 public slots:
 	bool connectToServer();
 private slots:

@@ -118,11 +118,6 @@ private:
 
 	genericADC *adcmag;
 	genericADC *adcph;
-	QBitArray *pll1array;
-	QBitArray *pll3array;
-	QBitArray *dds1array;
-	QBitArray *pll2array;
-	QBitArray *dds3array;
 	QHash<uint8_t, uint8_t> latchToUSBNumber;
 	void commandStep(quint32 step);
 	void commandInitStep(hardwareDevice *dev, quint32 step);

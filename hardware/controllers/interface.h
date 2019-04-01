@@ -52,6 +52,9 @@ public:
 	void setScanConfiguration(msa::scanConfig configuration);
 	virtual void hardwareInit();
 	void errorOcurred(msa::MSAdevice dev, QString text);
+	int getDebugLevel() const;
+	void setDebugLevel(int value);
+
 signals:
 	void dataReady(quint32 step, quint32 magnitude, quint32 phase);
 	void connected();
@@ -60,6 +63,7 @@ protected:
 	quint32 currentStep;
 	quint32 lastCommandedStep;
 	quint32 numberOfSteps;
+	int debugLevel;
 private:
 };
 

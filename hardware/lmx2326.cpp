@@ -117,14 +117,16 @@ bool lmx2326::processNewScan()
 			hasError = true;
 			msa::getInstance().currentInterface->errorOcurred(parser->getDevice(), QString("There was a problem with the PLL register settings for step %1").arg(step));
 		}
+		setFieldRegister(N_ACOUNTER_DIVIDER, quint32(Acounter));
+		setFieldRegister(N_BCOUNTER_DIVIDER, quint32(Bcounter));
 		setFieldRegister(N_CC, int(control_field::NCOUNTER));
 		setFieldRegister(N_CPGAIN_BIT, int(cp_gain::HIGH));//Phase Det Current, 1= 1 ma, 0= 250 ua
 		registerToBuffer(&s.ncounter, PIN_DATA, step);
 		addLEandCLK(step);
 		config[step] = s;
-		//qDebug() << "step:"<<"Acounter" << Acounter << "Bcounter" << Bcounter << s.ncounter;
-		//qDebug() << "step:"<<convertToStr(&s.ncounter);
-
+		if(parser->getDevice() == msa::PLL1 && msa::getInstance().currentInterface->getDebugLevel() > 2) {
+			qDebug() << "PLL1 step:"<< step <<" acounter:"<<Acounter<<" bcounter:"<< Bcounter<<" ARR:" <<convertToStr(&s.ncounter) << s.ncounter;
+		}
 	}
 	return hasError;
 }
@@ -155,8 +157,8 @@ bool lmx2326::init()
 	//qDebug() << "lmx2326 initMask" << *devicePins.value(PIN_DATA)->data.value(HW_INIT_STEP).dataMask;
 	//qDebug() << "lmx2326 initleda" << *devicePins.value(PIN_LE)->data.value(HW_INIT_STEP).dataArray;
 	//qDebug() << "lmx2326 initlema" << *devicePins.value(PIN_LE)->data.value(HW_INIT_STEP).dataMask;
-	////qDebug() << "lmx2326 initclkd" << *devicePins.value(PIN_CLK)->data.value(INIT_STEP).dataArray;
-	////qDebug() << "lmx2326 initclkm" << *devicePins.value(PIN_CLK)->data.value(INIT_STEP).dataMask;
+	//qDebug() << "lmx2326 initclkd" << *devicePins.value(PIN_CLK)->data.value(INIT_STEP).dataArray;
+	//qDebug() << "lmx2326 initclkm" << *devicePins.value(PIN_CLK)->data.value(INIT_STEP).dataMask;
 	//qDebug() << "lmx2326 initvcld" << *devicePins.value(PIN_VIRTUAL_CLOCK)->data.value(HW_INIT_STEP).dataArray;
 	//qDebug() << "lmx2326 initvclm" << *devicePins.value(PIN_VIRTUAL_CLOCK)->data.value(HW_INIT_STEP).dataMask;
 

@@ -81,3 +81,13 @@ void interface::errorOcurred(msa::MSAdevice dev , QString text)
 	Q_UNUSED(dev)
 	QMessageBox::critical(nullptr, "Error", text);
 }
+
+int interface::getDebugLevel() const
+{
+	return debugLevel;
+}
+
+void interface::setDebugLevel(int value)
+{
+	debugLevel = value;
+}
