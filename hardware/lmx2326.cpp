@@ -102,13 +102,13 @@ bool lmx2326::processNewScan()
 	double Bcounter = 0;
 	double Acounter = 0;
 	QList<quint32> index;
-	index.append(msa::getInstance().currentScan.steps.keys());
+	index.append(msa::getInstance().currentScan.steps->keys());
 	std::sort(index.begin(), index.end());
 
 	foreach (quint32 step, index) {
 		if(initIndexes.contains(step))
 				continue;
-		ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, msa::getInstance().currentScan.steps[step],step, error);
+		ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, (*msa::getInstance().currentScan.steps)[step],step, error);
 		if(error)
 			hasError = true;
 		Bcounter = floor(ncounter/32);
@@ -177,8 +177,8 @@ bool lmx2326::init()
 	config[HW_INIT_STEP - 1] = s;
 	initIndexes.append(HW_INIT_STEP - 1);
 	msa::scanStep st;
-	msa::getInstance().currentScan.steps.insert(HW_INIT_STEP, st);
-	double ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, msa::getInstance().currentScan.steps[HW_INIT_STEP],HW_INIT_STEP, error);
+	msa::getInstance().currentScan.steps->insert(HW_INIT_STEP, st);
+	double ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, (*msa::getInstance().currentScan.steps)[HW_INIT_STEP],HW_INIT_STEP, error);
 	if(ncounter > 0) {
 		double Bcounter = floor(ncounter/32);
 		double Acounter = round(ncounter-(Bcounter*32));

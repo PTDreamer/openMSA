@@ -69,7 +69,7 @@ bool ad9850::processNewScan()
 {
 	bool error; //TODO CHECK ERRORS
 	bool hadErrors = false;
-	QList<quint32> steps = msa::getInstance().currentScan.steps.keys();
+	QList<quint32> steps = msa::getInstance().currentScan.steps->keys();
 	std::sort(steps.begin(), steps.end());
 	foreach (quint32 step, steps) {
         if(initIndexes.contains(step))

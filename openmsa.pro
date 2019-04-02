@@ -34,6 +34,7 @@ SOURCES += main.cpp\
     hardware/controllers/slimusb.cpp \
     hardware/controllers/interface.cpp \
     hardware/controllers/usbdevice.cpp \
+    hardware/controllers/simulator.cpp \
     hardware/genericadc.cpp \
     hardware/msa.cpp \
     shared/comprotocol.cpp
@@ -47,6 +48,7 @@ HEADERS  += mainwindow.h \
     hardware/controllers/slimusb.h \
     hardware/controllers/interface.h \
     hardware/controllers/usbdevice.h \
+    hardware/controllers/simulator.h \
     hardware/genericadc.h \
     hardware/msa.h \
     shared/comprotocol.h

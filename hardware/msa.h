@@ -27,6 +27,7 @@
 #define MSA_H
 
 #include <QHash>
+#include "../shared/comprotocol.h"
 
 class hardwareDevice;
 class interface;
@@ -82,10 +83,11 @@ class msa
 			double masterOscilatorFrequency;
 			uint8_t adcAveraging;
 			scanType_t scanType;
+			ComProtocol::msg_scan_config gui;
 		} scanConfig;
 		typedef struct {
 			scanConfig configuration;
-			QHash<quint32, scanStep> steps;
+			QHash<quint32, scanStep> *steps;
 		} scanStruct;
 		scanStruct currentScan;
 		void setScanConfiguration(msa::scanConfig configuration);
@@ -95,6 +97,7 @@ class msa
 		int getResolution_filter_bank() const;
 		void setResolution_filter_bank(int value);
 
+		msa::scanConfig getScanConfiguration();
 };
 
 #endif // MSA_H

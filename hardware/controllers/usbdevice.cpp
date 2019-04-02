@@ -303,7 +303,7 @@ int LIBUSB_CALL usbdevice::hotplug_callback(struct libusb_context *ctx, struct l
 				th->signalDisconnected();
 			//qDebug() << "Device disconnected";
 			libusb_close(deviceHandler);
-			deviceHandler = NULL;
+			deviceHandler = nullptr;
 		}
 	} else {
 		//qDebug()<< QString("Unhandled event %d\n").arg(event);

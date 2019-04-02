@@ -31,6 +31,7 @@ ComProtocol::ComProtocol(QObject *parent, int debugLevel) : QObject(parent),serv
 	messageSize.insert(DUAL_DAC, sizeof (msg_dual_dac));
 	messageSize.insert(PH_DAC, sizeof (msg_ph_dac));
 	messageSize.insert(MAG_DAC, sizeof (msg_mag_dac));
+	messageSize.insert(SCAN_CONFIG, sizeof (msg_scan_config));
 
 	QList<unsigned long> sizes = messageSize.values();
 	double max = *std::max_element(sizes.begin(), sizes.end());
@@ -82,11 +83,16 @@ bool ComProtocol::connectToServer()
 	qDebug() << "Connecting,..";
 
 	socket->connectToHost(serverAddress, serverPort);
-	bool connected = socket->waitForConnected(5000);
+	bool connected = socket->waitForConnected(1000);
     if(connected) {
 		clientReconnectTimer.stop();
         emit clientConnected();
     }
+	else {
+		if(autoClientReconnection) {
+			clientReconnectTimer.start(1000);
+		}
+	}
 	qDebug() << "Client connected:" << connected;
 	return connected;
 }
@@ -210,6 +216,7 @@ void ComProtocol::processReceivedMessage()
 	receiveBuffer.append(socket->readAll());
 	bool repeat = true;
 	while(repeat) {
+		//qDebug() << "repeat" << currentStatus;
 		repeat = false;
 		switch (currentStatus) {
 			case status::LOOKING_FOR_SYNC:
@@ -261,6 +268,6 @@ void ComProtocol::processReceivedMessage()
 void ComProtocol::clientDisconnected()
 {
 	if(autoClientReconnection) {
-		clientReconnectTimer.start(10000);
+		clientReconnectTimer.start(1000);
 	}
 }

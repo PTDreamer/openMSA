@@ -72,8 +72,16 @@ void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 
 void msa::initScan(bool inverted, double start, double end, quint32 steps, int band)
 {
-	msa::getInstance().currentScan.steps.clear();
+	msa::scanConfig cfg = msa::getInstance().getScanConfiguration();
+	cfg.gui.start  = start;
+	cfg.gui.stop = end;
+	cfg.gui.steps_number = steps;
+	cfg.gui.band = band;
+	//TODO CalculateAllStepsForLO3Synth
+	msa::getInstance().currentScan.steps->clear();
 	double step = (end - start) / double(steps);
+	cfg.gui.step_freq = step;
+	msa::getInstance().setScanConfiguration(cfg);
 	int thisBand = 0;
 	int bandSelect = 0;
     for(quint32 x = 0; x < steps; ++x) {
@@ -106,7 +114,7 @@ void msa::initScan(bool inverted, double start, double end, quint32 steps, int b
 		}
 		s.band = bandSelect;
 		//qDebug() << "step:" << x << "real frequency:" << s.realFrequency << "translated frequency:" << s.translatedFrequency;
-		msa::getInstance().currentScan.steps.insert(x, s);
+		msa::getInstance().currentScan.steps->insert(x, s);
 	}
 	isInverted = inverted;
 	currentInterface->initScan();
@@ -116,6 +124,12 @@ void msa::initScan(bool inverted, double start, double end, double step_freq, in
 {
     quint32 steps = quint32((end - start) / step_freq);
 	initScan(inverted, start, end, steps, band);
+}
+
+
+msa::scanConfig msa::getScanConfiguration()
+{
+	return msa::getInstance().currentScan.configuration;
 }
 
 void msa::setScanConfiguration(msa::scanConfig configuration)

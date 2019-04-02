@@ -38,6 +38,7 @@ private:
 	QHash<msa::MSAdevice, int> devices;
 	interface *hwInterface;
 	QMutex mutex;
+	QMutex messageSend;
 	bool isConnected;
 
 	quint16 serverPort;

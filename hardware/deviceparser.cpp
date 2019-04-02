@@ -152,13 +152,13 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 				}
 				else {
 					double reversedFrequency;
-					quint32 reversedIndex = uint(msa::getInstance().currentScan.steps.size()) - stepNumber - 1;
+					quint32 reversedIndex = uint(msa::getInstance().currentScan.steps->size()) - stepNumber - 1;
 					if(step.band == 1)
-						reversedFrequency = msa::getInstance().currentScan.steps.value(reversedIndex).realFrequency;
+						reversedFrequency = msa::getInstance().currentScan.steps->value(reversedIndex).realFrequency;
 					else
-						reversedFrequency = msa::getInstance().currentScan.steps.value(reversedIndex).translatedFrequency;
+						reversedFrequency = msa::getInstance().currentScan.steps->value(reversedIndex).translatedFrequency;
 					if(step.band == 3)
-						step.LO3 = msa::getInstance().currentScan.steps.value(reversedIndex).realFrequency + configuration.TGoffset - configuration.LO2;
+						step.LO3 = msa::getInstance().currentScan.steps->value(reversedIndex).realFrequency + configuration.TGoffset - configuration.LO2;
 					else
 						step.LO3 = configuration.LO2 + reversedFrequency + configuration.TGoffset;
 				}

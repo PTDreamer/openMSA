@@ -61,7 +61,7 @@ interface::~interface()
 bool interface::initScan()
 {
 	msa::scanStruct scan = msa::getInstance().currentScan;
-	numberOfSteps = scan.steps.keys().size();
+	numberOfSteps = scan.steps->keys().size();
 	if(msa::getInstance().getIsInverted())
 		currentStep = numberOfSteps;
 	else
