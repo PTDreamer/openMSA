@@ -50,7 +50,6 @@ class msa
 		msa(msa const&)               = delete;
 		void operator=(msa const&)  = delete;
 		void hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface);
-		typedef enum {SA, SA_TG, SA_SG, VNA} scanType_t;
 		typedef struct {
 			double translatedFrequency;
 			double realFrequency;
@@ -67,9 +66,6 @@ class msa
 			double LO2; // from configuration
 			double finalFilterFrequency; //final filter frequency;
 			double finalFilterBandwidth; //final filter bandwidth;
-			double TGoffset; //tracking generator offset
-			bool   TGreversed;
-			double SGout; //signal generator output frequency
 			double appxdds1; // center freq. of DDS1 xtal filter; exact value determined in calibration
 			double appxdds3; // center freq. of DDS3 xtal filter; exact value determined in calibration
 			double dds3Filterbandwidth;
@@ -82,7 +78,7 @@ class msa
 			bool   PLL3phasepolarity_inverted;
 			double masterOscilatorFrequency;
 			uint8_t adcAveraging;
-			scanType_t scanType;
+			ComProtocol::scanType_t scanType;
 			ComProtocol::msg_scan_config gui;
 		} scanConfig;
 		typedef struct {

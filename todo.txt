@@ -23,6 +23,10 @@ if msaMode$="SA" and gentrk=0 then     '117cM
     end if
 end if
 
+QIcon(":/images/smith_chart_red.png"), tr("Trash")
+trayIcon->setIcon(icon);
+setWindowIcon(icon);
+
 PrintMessage
 
 [Command2326R]

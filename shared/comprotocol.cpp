@@ -36,7 +36,7 @@ ComProtocol::ComProtocol(QObject *parent, int debugLevel) : QObject(parent),serv
 	QList<unsigned long> sizes = messageSize.values();
 	double max = *std::max_element(sizes.begin(), sizes.end());
 	startOfData = 3 + sizeof (quint32);
-	messageSendBuffer.resize(int(max + startOfData + sizeof (quint16) + 1));
+	messageSendBuffer.resize(int(max + startOfData + sizeof (quint16) + 2));
 	messageSendBuffer[0] = SYNC_BYTE;
 
 
@@ -101,9 +101,13 @@ void ComProtocol::sendMessage(messageType type, messageCommandType command, void
 	prepareMessage(type, command, data);
 //	qDebug() << "isSocketOpen?:"<< socket->isOpen();
 	if(socket && socket->state() == QTcpSocket::ConnectedState) {
-		qint64 size = messageSendBuffer.at(messageSendBuffer.length() -1);
+		quint16 size;
+		quint16 msgSize = 0;
+		if(messageSize.contains(type))
+			msgSize = quint16(messageSize.value(type));
+		memcpy(&size, (messageSendBuffer.data() + startOfData + msgSize + sizeof (quint16)), sizeof (quint16));
 		bytesWaitingToBeSent += size;
-		socket->write(messageSendBuffer.constData(), messageSendBuffer.at(messageSendBuffer.length() -1));
+		socket->write(messageSendBuffer.constData(), size);
 	}
 	if(debugLevel > 2)
 		qDebug() << "bytesWaitingToBeSent:"<< bytesWaitingToBeSent;
@@ -149,8 +153,9 @@ void ComProtocol::prepareMessage(messageType type, messageCommandType command, v
 	if(msgSize)
         memcpy((messageSendBuffer.data() + startOfData), data, msgSize);
 	quint16 checksum = qChecksum(messageSendBuffer.constData() + 1, msgSize + 2 + sizeof (quint32));
-    memcpy((messageSendBuffer.data() + startOfData + msgSize), (&checksum), sizeof (quint16));
-    messageSendBuffer[messageSendBuffer.length() - 1] = char(startOfData + sizeof (quint16) + msgSize);
+	memcpy((messageSendBuffer.data() + startOfData + msgSize), (&checksum), sizeof (quint16));
+	quint16 size = (startOfData + sizeof (quint16) + msgSize);
+	memcpy((messageSendBuffer.data() + startOfData + msgSize + sizeof (quint16)), &size, sizeof (quint16));
 }
 
 bool ComProtocol::unpackMessage(QByteArray rmessage, messageType &type, messageCommandType &command, quint32 &msgNumber, void *data) {
@@ -167,9 +172,8 @@ bool ComProtocol::unpackMessage(QByteArray rmessage, messageType &type, messageC
     memcpy(&receivedChecksum, (rmessage.constData() + startOfData + msgSize), sizeof (quint16));
 	if(calcChecksum != receivedChecksum)
 		return false;
-    memcpy(data, (rmessage.constData() + startOfData), msgSize);
-    messageSendBuffer[messageSendBuffer.length() - 1] = char(startOfData + sizeof (quint16) + msgSize);
-    return true;
+	memcpy(data, (rmessage.constData() + startOfData), msgSize);
+	return true;
 }
 
 
@@ -216,7 +220,7 @@ void ComProtocol::processReceivedMessage()
 	receiveBuffer.append(socket->readAll());
 	bool repeat = true;
 	while(repeat) {
-		//qDebug() << "repeat" << currentStatus;
+//		qDebug() << "repeat" << currentStatus;
 		repeat = false;
 		switch (currentStatus) {
 			case status::LOOKING_FOR_SYNC:

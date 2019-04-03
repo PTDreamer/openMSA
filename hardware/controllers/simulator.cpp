@@ -62,6 +62,8 @@ bool simulator::init(int debugLevel)
 
 simulator::~simulator()
 {
+	this->requestInterruption();
+	QThread::usleep(500);
 }
 
 void simulator::commandStep(quint32 step)
@@ -69,7 +71,7 @@ void simulator::commandStep(quint32 step)
 	if(msa::getInstance().currentInterface->getDebugLevel() > 1)
 		qDebug()<<"step:"<< step;
 	quint32 totalSteps = msa::getInstance().getScanConfiguration().gui.steps_number;
-	double currentStepPart = (double)step / totalSteps;
+	double currentStepPart = double(step) / totalSteps;
 	QThread::usleep(writeReadDelay_us);
 	emit dataReady(step, quint32(5000 * (QRandomGenerator::global()->generateDouble() + sin(currentStepPart * 2 * M_PI)) + 20000), quint32(5000 * ( QRandomGenerator::global()->generateDouble()+cos(currentStepPart * 2 * M_PI)) + 20000));
 }
@@ -158,7 +160,7 @@ bool simulator::initScan()
 		}
 	}
 	adcSend.clear();
-	if(msa::getInstance().currentScan.configuration.scanType != msa::VNA) {
+	if((msa::getInstance().currentScan.configuration.scanType != ComProtocol::VNA_Rec) && (msa::getInstance().currentScan.configuration.scanType != ComProtocol::VNA_Trans)) {
 		adcSend.append(char(0xB2));//TODO
 	}
 	else

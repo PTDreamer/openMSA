@@ -185,7 +185,7 @@ bool slimusb::initScan()
 //		//qDebug() << step << ":" << str;
 //	}
 	adcSend.clear();
-	if(msa::getInstance().currentScan.configuration.scanType != msa::VNA) {
+	if((msa::getInstance().currentScan.configuration.scanType != ComProtocol::VNA_Rec) && (msa::getInstance().currentScan.configuration.scanType != ComProtocol::VNA_Trans)) {
 		adcSend.append(char(0xB2));//TODO
 	}
 	else

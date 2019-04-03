@@ -141,13 +141,13 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 		switch (hwdev) {
 		case hardwareDevice::LMX2326:
 			lmx = dynamic_cast<genericPLL*>(msa::getInstance().currentHardwareDevices.value(msadev));
-			if(configuration.scanType == msa::SA_TG) {
-				if(!configuration.TGreversed) {
+			if(configuration.scanType == ComProtocol::SA_TG) {
+				if(!configuration.gui.TGreversed) {
 					if(step.band == 3) {
-						step.LO3 = step.realFrequency + configuration.TGoffset - configuration.LO2;
+						step.LO3 = step.realFrequency + configuration.gui.TGoffset - configuration.LO2;
 					}
 					else {
-						step.LO3 = configuration.LO2 + step.translatedFrequency + configuration.TGoffset;
+						step.LO3 = configuration.LO2 + step.translatedFrequency + configuration.gui.TGoffset;
 					}
 				}
 				else {
@@ -158,19 +158,19 @@ double deviceParser::parsePLLNCounter(msa::scanConfig configuration, msa::scanSt
 					else
 						reversedFrequency = msa::getInstance().currentScan.steps->value(reversedIndex).translatedFrequency;
 					if(step.band == 3)
-						step.LO3 = msa::getInstance().currentScan.steps->value(reversedIndex).realFrequency + configuration.TGoffset - configuration.LO2;
+						step.LO3 = msa::getInstance().currentScan.steps->value(reversedIndex).realFrequency + configuration.gui.TGoffset - configuration.LO2;
 					else
-						step.LO3 = configuration.LO2 + reversedFrequency + configuration.TGoffset;
+						step.LO3 = configuration.LO2 + reversedFrequency + configuration.gui.TGoffset;
 				}
-				step.LO3 = configuration.LO2 - configuration.finalFilterFrequency - configuration.TGoffset;
+				step.LO3 = configuration.LO2 - configuration.finalFilterFrequency - configuration.gui.TGoffset;
 			}
-			else if(configuration.scanType == msa::SA_SG) {
-				if(configuration.SGout <= configuration.LO2)
-					step.LO3 = configuration.SGout + configuration.LO2;
-				else if(configuration.SGout > (2*configuration.LO2))
-					step.LO3 = configuration.SGout - configuration.LO2;
+			else if(configuration.scanType == ComProtocol::SA_SG) {
+				if(configuration.gui.SGout <= configuration.LO2)
+					step.LO3 = configuration.gui.SGout + configuration.LO2;
+				else if(configuration.gui.SGout > (2*configuration.LO2))
+					step.LO3 = configuration.gui.SGout - configuration.LO2;
 				else
-					step.LO3 = configuration.SGout;
+					step.LO3 = configuration.gui.SGout;
 			}
 			if(lmx) {
 				ncount = step.LO3/(configuration.appxdds3/ lmx->getRCounter()); //approximates the Ncounter for PLL

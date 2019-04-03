@@ -41,7 +41,7 @@ class ComProtocol : public QObject
 public:
 	typedef enum {DUAL_DAC, MAG_DAC, PH_DAC, DEBUG_VALUES, DEBUG_SETUP, SCAN_SETUP, SCAN_CONFIG} messageType;
 	typedef enum {MESSAGE_REQUEST, MESSAGE_SEND, MESSAGE_SEND_REQUEST_ACK, ACK} messageCommandType;
-	typedef enum {SA, SA_TG, SA_SG, VNA} scanType_t;
+	typedef enum {SA, SA_TG, SA_SG,  VNA_Trans, VNA_Rec} scanType_t;
 	typedef struct {
 		uint32_t step;
 		uint32_t mag;
@@ -72,6 +72,11 @@ public:
 		bool stepModeAuto;
 		bool isInvertedScan;
 		int band;
+		bool TGreversed;
+		double TGoffset; //tracking generator offset
+		quint32 TGoffset_multi;
+		double SGout; //signal generator output frequency
+		quint32 SGout_multi;
 	} msg_scan_config;
 
 	QHash<messageType, unsigned long> messageSize;
