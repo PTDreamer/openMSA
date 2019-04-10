@@ -70,7 +70,7 @@ void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 	currentInterface->hardwareInit();
 }
 
-void msa::initScan(bool inverted, double start, double end, quint32 steps, int band)
+bool msa::initScan(bool inverted, double start, double end, quint32 steps, int band)
 {
 	msa::scanConfig cfg = msa::getInstance().getScanConfiguration();
 	cfg.gui.start  = start;
@@ -80,6 +80,8 @@ void msa::initScan(bool inverted, double start, double end, quint32 steps, int b
 	//TODO CalculateAllStepsForLO3Synth
 	msa::getInstance().currentScan.steps->clear();
 	double step = (end - start) / double(steps);
+	if(step > msa::getInstance().currentScan.configuration.pathCalibration.bandwidth_MHZ)
+		msa::getInstance().currentInterface->errorOcurred(msa::MSA, "Frequency step size exceeds final filter bandwidth signals may be missed.", false, true);
 	cfg.gui.step_freq = step;
 	msa::getInstance().setScanConfiguration(cfg);
 	int thisBand = 0;
@@ -106,7 +108,7 @@ void msa::initScan(bool inverted, double start, double end, quint32 steps, int b
 			s.translatedFrequency = s.translatedFrequency - msa::getInstance().currentScan.configuration.LO2;
 			break;
 		case 3:
-			IF1 = msa::getInstance().currentScan.configuration.LO2 - msa::getInstance().currentScan.configuration.finalFilterFrequency;
+			IF1 = msa::getInstance().currentScan.configuration.LO2 - msa::getInstance().currentScan.configuration.pathCalibration.centerFreq_MHZ;
 			s.translatedFrequency = s.translatedFrequency - 2*IF1;
 			break;
 		default:
@@ -117,13 +119,14 @@ void msa::initScan(bool inverted, double start, double end, quint32 steps, int b
 		msa::getInstance().currentScan.steps->insert(x, s);
 	}
 	isInverted = inverted;
-	currentInterface->initScan();
+	extrapolateFrequenctCalibrationForCurrentScan();
+	return currentInterface->initScan();
 }
 
-void msa::initScan(bool inverted, double start, double end, double step_freq, int band)
+bool msa::initScan(bool inverted, double start, double end, double step_freq, int band)
 {
     quint32 steps = quint32((end - start) / step_freq);
-	initScan(inverted, start, end, steps, band);
+	return initScan(inverted, start, end, steps, band);
 }
 
 
@@ -135,4 +138,80 @@ msa::scanConfig msa::getScanConfiguration()
 void msa::setScanConfiguration(msa::scanConfig configuration)
 {
 	msa::getInstance().currentScan.configuration = configuration;
+}
+
+void msa::extrapolateFrequenctCalibrationForCurrentScan() {
+	QList<quint32> ksteps = msa::getInstance().currentScan.steps->keys();
+	QList<double> fcsteps = msa::getInstance().currentScan.configuration.frequencyCalibration.freqToPower.keys();
+	QHash<double, double> fTod = msa::getInstance().currentScan.configuration.frequencyCalibration.freqToPower;
+	std::sort(ksteps.begin(), ksteps.end());
+	std::sort(fcsteps.begin(), fcsteps.end());
+	for (int x = 0; x < ksteps.length(); ++x) {
+		double f = msa::getInstance().currentScan.steps->value(ksteps.at(x)).realFrequency;
+		if(f < fcsteps.first()) {
+			(*(msa::getInstance().currentScan.steps))[ksteps.at(x)].frequencyCal = msa::getInstance().currentScan.configuration.frequencyCalibration.freqToPower.value(fcsteps.first());
+		}
+		else if(f > fcsteps.last()) {
+			(*(msa::getInstance().currentScan.steps))[ksteps.at(x)].frequencyCal = msa::getInstance().currentScan.configuration.frequencyCalibration.freqToPower.value(fcsteps.last());
+		}
+		else {
+			for (int y = 0; y < fcsteps.length(); ++y) {
+				if(fcsteps.at(y) == f) {
+					(*msa::getInstance().currentScan.steps)[(ksteps.at(x))].frequencyCal = fTod.value(fcsteps.at(y));
+					break;
+				}
+//ret.adcToMagCalFactors.value(values.at(int(y))).dbm_val - double(values.at(int(y)) - x)*(ret.adcToMagCalFactors.value(values.at(int(y))).dbm_val - ret.adcToMagCalFactors.value(values.at(int(y -1))).dbm_val) / double(values.at(int(y))-values.at(int(y - 1)));
+				else if(fcsteps.at(y) > f) {
+					if(y == 0)
+						continue;
+					double ff = fTod.value(fcsteps.at(int(y)))
+							- double(fcsteps.at(int(y)) - f) *
+							(fTod.value(fcsteps.at(int(y))) - fTod.value(fcsteps.at(int(y -1)))) /
+							double(fcsteps.at(int(y))-fcsteps.at(int(y - 1)));
+					(*msa::getInstance().currentScan.steps)[(ksteps.at(x))].frequencyCal = ff;
+					break;
+				}
+			}
+		}
+	}
+}
+bool msa::setPathCalibrationAndExtrapolate(QString pathName)
+{
+	bool found = false;
+	calParser::magPhaseCalData ret;
+	foreach (calParser::magPhaseCalData data, msa::getInstance().currentScan.configuration.pathCalibrationList) {
+		if(data.pathName.contains(pathName)) {
+			ret = data;
+			found = true;
+			break;
+		}
+	}
+	if(!found)
+		return false;
+	msa::getInstance().currentScan.configuration.pathCalibration = ret;
+	msa::getInstance().currentScan.configuration.pathCalibration.adcToMagCalFactors.clear();
+	QList<uint> values = ret.adcToMagCalFactors.keys();
+	std::sort(values.begin(), values.end());
+	for(uint x = 0; x < 0xFFFF; ++x) {
+		if(x < values.first())
+			msa::getInstance().currentScan.configuration.pathCalibration.adcToMagCalFactors.insert(x, ret.adcToMagCalFactors.value(values.first()));
+		else if(x > values.last())
+			msa::getInstance().currentScan.configuration.pathCalibration.adcToMagCalFactors.insert(x, ret.adcToMagCalFactors.value(values.last()));
+		else {
+			for(uint y = 0; y < uint(values.length()); ++y) {
+				if(x == values.at(int(y))) {
+					msa::getInstance().currentScan.configuration.pathCalibration.adcToMagCalFactors.insert(x, ret.adcToMagCalFactors.value(values.at(int(y))));
+					break;
+				}
+				if(values.at(int(y)) > x) {
+					calParser::magCalFactors fact;
+					fact.dbm_val = ret.adcToMagCalFactors.value(values.at(int(y))).dbm_val - double(values.at(int(y)) - x)*(ret.adcToMagCalFactors.value(values.at(int(y))).dbm_val - ret.adcToMagCalFactors.value(values.at(int(y -1))).dbm_val) / double(values.at(int(y))-values.at(int(y - 1)));
+					fact.phase_val = ret.adcToMagCalFactors.value(values.at(int(y))).phase_val - (values.at(int(y)) - x)*(ret.adcToMagCalFactors.value(values.at(int(y))).phase_val - ret.adcToMagCalFactors.value(values.at(int(y -1))).phase_val) / (values.at(int(y))-values.at(int(y - 1)));
+					msa::getInstance().currentScan.configuration.pathCalibration.adcToMagCalFactors.insert(x, fact);
+					break;
+				}
+			}
+		}
+	}
+	return true;
 }

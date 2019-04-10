@@ -16,7 +16,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	QApplication::setQuitOnLastWindowClosed(false);
-
+	app.setOrganizationName("JBTech");
+	app.setApplicationName("openMSA");
+	app.setApplicationVersion("1.0.0");
 	MainWindow window;
 	return app.exec();
 }

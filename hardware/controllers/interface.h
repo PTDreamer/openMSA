@@ -34,7 +34,7 @@ class interface: public QThread
 {
 	Q_OBJECT
 public:
-	enum interface_types {USB};
+	enum interface_types {USB, SIMULATOR};
 	interface(QObject *parent);
 	~interface();
 protected slots:
@@ -51,14 +51,15 @@ public:
 	virtual bool initScan();
 	void setScanConfiguration(msa::scanConfig configuration);
 	virtual void hardwareInit();
-	void errorOcurred(msa::MSAdevice dev, QString text);
+	void errorOcurred(msa::MSAdevice dev, QString text, bool critical, bool sendToGUI);
 	int getDebugLevel() const;
 	void setDebugLevel(int value);
-
+	virtual interface_types type() = 0;
 signals:
 	void dataReady(quint32 step, quint32 magnitude, quint32 phase);
 	void connected();
 	void disconnected();
+	void errorTriggered(QString, bool, bool);
 protected:
 	quint32 currentStep;
 	quint32 lastCommandedStep;

@@ -39,13 +39,13 @@ class ComProtocol : public QObject
 {
 	Q_OBJECT
 public:
-	typedef enum {DUAL_DAC, MAG_DAC, PH_DAC, DEBUG_VALUES, DEBUG_SETUP, SCAN_SETUP, SCAN_CONFIG} messageType;
+	typedef enum {DUAL_DAC, MAG_DAC, PH_DAC, DEBUG_VALUES, DEBUG_SETUP, SCAN_SETUP, SCAN_CONFIG, ERROR_INFO} messageType;
 	typedef enum {MESSAGE_REQUEST, MESSAGE_SEND, MESSAGE_SEND_REQUEST_ACK, ACK} messageCommandType;
-	typedef enum {SA, SA_TG, SA_SG,  VNA_Trans, VNA_Rec} scanType_t;
+	typedef enum {SA, SA_TG, SA_SG,  VNA_Trans, VNA_Rec, SNA} scanType_t;
 	typedef struct {
 		uint32_t step;
-		uint32_t mag;
-		uint32_t phase;
+		double mag;
+		double phase;
 	} msg_dual_dac;
 	typedef struct {
 		uint32_t step;
@@ -78,6 +78,10 @@ public:
 		double SGout; //signal generator output frequency
 		quint32 SGout_multi;
 	} msg_scan_config;
+	typedef struct {
+		char text[sizeof (msg_scan_config) - sizeof (bool)];
+		bool isCritical;
+	} msg_error_info;
 
 	QHash<messageType, unsigned long> messageSize;
 	QByteArray messageSendBuffer;
@@ -85,7 +89,7 @@ public:
 
 	bool startServer();
 	bool startServer(quint16 port);
-	void prepareMessage(messageType type, messageCommandType command, void *data);
+	quint16 prepareMessage(messageType type, messageCommandType command, void *data);
 	bool unpackMessage(QByteArray rmessage, messageType &type, messageCommandType &command, quint32 &msgNumber, void *data);
 	quint16 getServerPort() const;
 	void setServerPort(const quint16 &value);

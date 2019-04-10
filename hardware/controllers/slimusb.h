@@ -58,6 +58,7 @@ public:
 	bool isScanning();
 	QByteArray convertStringToByteArray(QString str);
 	bool sendArrayForDebug(QByteArray);
+	interface_types type() {return USB;}
 protected:
 	void run();
 public slots:

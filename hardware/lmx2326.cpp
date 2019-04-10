@@ -97,6 +97,7 @@ bool lmx2326::processNewScan()
 {
 	bool error;
 	bool hasError = false;
+	bool hasFatalError = false;
 	//qDebug() << "lmx2326 starting processNewScan";
 	double ncounter = 0;
 	double Bcounter = 0;
@@ -108,14 +109,14 @@ bool lmx2326::processNewScan()
 	foreach (quint32 step, index) {
 		if(initIndexes.contains(step))
 				continue;
-		ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, (*msa::getInstance().currentScan.steps)[step],step, error);
+		ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, (*msa::getInstance().currentScan.steps)[step],step, error, hasFatalError);
 		if(error)
 			hasError = true;
 		Bcounter = floor(ncounter/32);
 		Acounter = round(ncounter-(Bcounter*32));
 		if(Acounter < 0 || Acounter > 31 || Bcounter < 3 || Bcounter > 8191 || Acounter > Bcounter) {
 			hasError = true;
-			msa::getInstance().currentInterface->errorOcurred(parser->getDevice(), QString("There was a problem with the PLL register settings for step %1").arg(step));
+			msa::getInstance().currentInterface->errorOcurred(parser->getDevice(), QString("There was a problem with the PLL register settings for step %1").arg(step), hasFatalError, false);
 		}
 		setFieldRegister(N_ACOUNTER_DIVIDER, quint32(Acounter));
 		setFieldRegister(N_BCOUNTER_DIVIDER, quint32(Bcounter));
@@ -134,6 +135,7 @@ bool lmx2326::processNewScan()
 bool lmx2326::init()
 {
 	bool error;
+	bool fatalError;
 	setFieldRegister(R_CC, int(control_field::RCOUNTER));
 	setFieldRegister(N_CC, int(control_field::NCOUNTER));
 	setFieldRegister(L_CC, int(control_field::INIT));
@@ -178,7 +180,7 @@ bool lmx2326::init()
 	initIndexes.append(HW_INIT_STEP - 1);
 	msa::scanStep st;
 	msa::getInstance().currentScan.steps->insert(HW_INIT_STEP, st);
-	double ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, (*msa::getInstance().currentScan.steps)[HW_INIT_STEP],HW_INIT_STEP, error);
+	double ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, (*msa::getInstance().currentScan.steps)[HW_INIT_STEP],HW_INIT_STEP, error, fatalError);
 	if(ncounter > 0) {
 		double Bcounter = floor(ncounter/32);
 		double Acounter = round(ncounter-(Bcounter*32));

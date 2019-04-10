@@ -11,6 +11,8 @@ target.path = /home/jose/code
 INSTALLS += target
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 QT +=network
+QT += charts
+
 TARGET = openmsa
 TEMPLATE = app
 
@@ -38,7 +40,11 @@ SOURCES += main.cpp\
     hardware/controllers/simulator.cpp \
     hardware/genericadc.cpp \
     hardware/msa.cpp \
-    shared/comprotocol.cpp
+    shared/comprotocol.cpp \
+    helperform.cpp \
+    calparser.cpp \
+    calibrationviewer.cpp \
+    hardwareconfigwidget.cpp
 
 HEADERS  += mainwindow.h \
     hardware/lmx2326.h \
@@ -52,9 +58,16 @@ HEADERS  += mainwindow.h \
     hardware/controllers/simulator.h \
     hardware/genericadc.h \
     hardware/msa.h \
-    shared/comprotocol.h
+    shared/comprotocol.h \
+    helperform.h \
+    calparser.h \
+    calibrationviewer.h \
+    hardwareconfigwidget.h
 
-FORMS   += mainwindow.ui
+FORMS   += mainwindow.ui \
+    helperform.ui \
+    calibrationviewer.ui \
+    hardwareconfigwidget.ui
 LIBS	+= -L./lib -lusb-1.0
 
 DISTFILES += \

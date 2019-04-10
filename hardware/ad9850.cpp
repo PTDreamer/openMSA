@@ -68,13 +68,14 @@ ad9850::ad9850(msa::MSAdevice device, QObject *parent) : genericDDS(parent)
 bool ad9850::processNewScan()
 {
 	bool error; //TODO CHECK ERRORS
+	bool fataError;
 	bool hadErrors = false;
 	QList<quint32> steps = msa::getInstance().currentScan.steps->keys();
 	std::sort(steps.begin(), steps.end());
 	foreach (quint32 step, steps) {
         if(initIndexes.contains(step))
             continue;
-		quint32 base = parser->parseDDSOutput(msa::getInstance().currentScan.configuration, step, error);
+		quint32 base = parser->parseDDSOutput(msa::getInstance().currentScan.configuration, step, error,fataError);
 		//qDebug()<<"DDS:" << "step:"<<step<<" "<< base;
 		if(!error) {
 			setFieldRegister(FIELD_FREQUENCY, base);

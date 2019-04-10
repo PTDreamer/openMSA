@@ -27,12 +27,13 @@
 #include <QDebug>
 
 ComProtocol::ComProtocol(QObject *parent, int debugLevel) : QObject(parent),serverPort(1234),socket(nullptr), bytesWaitingToBeSent(0),msgNumber(0),debugLevel(debugLevel)
+  ,server(nullptr)
 {
 	messageSize.insert(DUAL_DAC, sizeof (msg_dual_dac));
 	messageSize.insert(PH_DAC, sizeof (msg_ph_dac));
 	messageSize.insert(MAG_DAC, sizeof (msg_mag_dac));
 	messageSize.insert(SCAN_CONFIG, sizeof (msg_scan_config));
-
+	messageSize.insert(ERROR_INFO, sizeof (msg_error_info));
 	QList<unsigned long> sizes = messageSize.values();
 	double max = *std::max_element(sizes.begin(), sizes.end());
 	startOfData = 3 + sizeof (quint32);
@@ -45,6 +46,10 @@ ComProtocol::ComProtocol(QObject *parent, int debugLevel) : QObject(parent),serv
 
 bool ComProtocol::startServer()
 {
+	if(server) {
+		server->close();
+		server->deleteLater();
+	}
 	server = new QTcpServer(this);
 
 	connect(server, SIGNAL(newConnection()), this, SLOT(newConnection()));
@@ -98,14 +103,12 @@ bool ComProtocol::connectToServer()
 }
 void ComProtocol::sendMessage(messageType type, messageCommandType command, void *data) {
 	bytesWaitingToBeSentLock.lock();
-	prepareMessage(type, command, data);
+	quint16 size = prepareMessage(type, command, data);
 //	qDebug() << "isSocketOpen?:"<< socket->isOpen();
 	if(socket && socket->state() == QTcpSocket::ConnectedState) {
-		quint16 size;
 		quint16 msgSize = 0;
 		if(messageSize.contains(type))
 			msgSize = quint16(messageSize.value(type));
-		memcpy(&size, (messageSendBuffer.data() + startOfData + msgSize + sizeof (quint16)), sizeof (quint16));
 		bytesWaitingToBeSent += size;
 		socket->write(messageSendBuffer.constData(), size);
 	}
@@ -142,7 +145,7 @@ bool ComProtocol::isConnected()
         return  false;
     }
 }
-void ComProtocol::prepareMessage(messageType type, messageCommandType command, void *data) {
+quint16 ComProtocol::prepareMessage(messageType type, messageCommandType command, void *data) {
 	messageSendBuffer[1] = type;
 	messageSendBuffer[2] = command;
     quint16 msgSize = 0;
@@ -154,13 +157,14 @@ void ComProtocol::prepareMessage(messageType type, messageCommandType command, v
         memcpy((messageSendBuffer.data() + startOfData), data, msgSize);
 	quint16 checksum = qChecksum(messageSendBuffer.constData() + 1, msgSize + 2 + sizeof (quint32));
 	memcpy((messageSendBuffer.data() + startOfData + msgSize), (&checksum), sizeof (quint16));
-	quint16 size = (startOfData + sizeof (quint16) + msgSize);
-	memcpy((messageSendBuffer.data() + startOfData + msgSize + sizeof (quint16)), &size, sizeof (quint16));
+	return  (startOfData + sizeof (quint16) + msgSize);
 }
 
 bool ComProtocol::unpackMessage(QByteArray rmessage, messageType &type, messageCommandType &command, quint32 &msgNumber, void *data) {
-	if(rmessage.at(0) != SYNC_BYTE)
+	if(rmessage.at(0) != SYNC_BYTE) {
+		qDebug() << "WTF";
 		return  false;
+	}
     type = messageType(rmessage.at(1));
     command = messageCommandType(rmessage.at(2));
     quint16 msgSize = 0;
@@ -169,9 +173,12 @@ bool ComProtocol::unpackMessage(QByteArray rmessage, messageType &type, messageC
 	memcpy(&msgNumber, rmessage.constData() + 3, sizeof (quint32));
     quint16 calcChecksum = qChecksum((rmessage.constData() + 1), msgSize + 2 + sizeof (quint32));
 	quint16 receivedChecksum;
-    memcpy(&receivedChecksum, (rmessage.constData() + startOfData + msgSize), sizeof (quint16));
-	if(calcChecksum != receivedChecksum)
+	memcpy(&receivedChecksum, (rmessage.constData() + startOfData + msgSize), sizeof (quint16));
+
+	if(calcChecksum != receivedChecksum) {
+		qDebug() << "wrong checksum";
 		return false;
+	}
 	memcpy(data, (rmessage.constData() + startOfData), msgSize);
 	return true;
 }
@@ -240,6 +247,7 @@ void ComProtocol::processReceivedMessage()
 				else {
 					repeat = true;
 					currentStatus = LOOKING_FOR_SYNC;
+					receiveBuffer[0] = 0;
 				}
 			}
 		break;

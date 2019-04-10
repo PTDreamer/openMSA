@@ -41,7 +41,7 @@ class hardwareDevice:public QObject
 	Q_OBJECT
 public:
 	hardwareDevice(QObject *parent);
-	typedef enum {LMX2326, AD9850, AD7685, LT1865} HWdevice;
+	typedef enum {LMX2326, AD9850, AD7685, LT1865, NONE} HWdevice;
 	typedef enum {MAIN_DATA, GEN_INPUT, GEN_OUTPUT, INPUT_OUTPUT, CLK, VIRTUAL_CLK}pinType;
 	typedef enum {CLOCK_RISING_EDGE, CLOCK_FALLING_EDGE}clockType;
 	typedef struct {

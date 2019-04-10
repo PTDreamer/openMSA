@@ -34,11 +34,12 @@
 
 interface::interface(QObject *parent):QThread(parent)
 {
+	//TODO delete this?
 	msa::getInstance().currentScan.configuration.LO2 = 1024;
 	msa::getInstance().currentScan.configuration.appxdds1 = 10.7;
 	msa::getInstance().currentScan.configuration.baseFrequency = 0;
 	msa::getInstance().currentScan.configuration.PLL1phasefreq = 0.974;
-	msa::getInstance().currentScan.configuration.finalFilterFrequency = 10.7;
+	msa::getInstance().currentScan.configuration.pathCalibration.centerFreq_MHZ = 10.7;
 	msa::getInstance().currentScan.configuration.masterOscilatorFrequency = 64;
 }
 
@@ -76,10 +77,10 @@ void interface::hardwareInit()
 	}
 }
 
-void interface::errorOcurred(msa::MSAdevice dev , QString text)
+void interface::errorOcurred(msa::MSAdevice dev , QString text, bool critical, bool sendToGUI)
 {
 	Q_UNUSED(dev)
-	QMessageBox::critical(nullptr, "Error", text);
+	emit errorTriggered(text, critical, sendToGUI);
 }
 
 int interface::getDebugLevel() const

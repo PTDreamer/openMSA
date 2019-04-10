@@ -119,15 +119,15 @@ bool simulator::initScan()
 	bool error = false;
 	interface::initScan();
 	if(pll1)
-		error &= pll1->processNewScan();
+		error |= pll1->processNewScan();
 	if(dds1)
-		error &= dds1->processNewScan();
+		error |= dds1->processNewScan();
 	if(pll3)
-		error &= pll3->processNewScan();
+		error |= pll3->processNewScan();
 	if(dds3)
-		error &= dds3->processNewScan();
+		error |= dds3->processNewScan();
 	if(error)
-		msa::getInstance().currentInterface->errorOcurred(msa::MSA, "Error ocurred processing new scan");
+		msa::getInstance().currentInterface->errorOcurred(msa::MSA, "Error ocurred processing new scan", true, true);
 	qDeleteAll(usbData.values());
 	usbData.clear();
 	foreach (hardwareDevice *dev, msa::getInstance().currentHardwareDevices.values()) {

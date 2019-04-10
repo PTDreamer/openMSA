@@ -26,9 +26,15 @@
 #include <QVBoxLayout>
 #include <QMessageBox>
 
+#include <QDir>
+
 //! [0]
-MainWindow::MainWindow()
+MainWindow::MainWindow():hwInterface(nullptr)
 {
+	logForm = new HelperForm();
+
+	connect(this, &MainWindow::triggerMessage, this, &MainWindow::showMessage);
+	connect(this, &MainWindow::triggerMessage, logForm, &HelperForm::showMessage);
 	createMessageGroupBox();
 	iconLabel = new QLabel("Icon:");
 
@@ -37,7 +43,7 @@ MainWindow::MainWindow()
 	createActions();
 	createTrayIcon();
 
-	connect(showMessageButton, &QAbstractButton::clicked, this, &MainWindow::showMessage);
+	//connect(showMessageButton, &QAbstractButton::clicked, this, &MainWindow::showMessage);
 	connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::messageClicked);
 	connect(trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::iconActivated);
 
@@ -95,7 +101,7 @@ void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
 	case QSystemTrayIcon::DoubleClick:
 		break;
 	case QSystemTrayIcon::MiddleClick:
-		showMessage();
+//		showMessage();
 		break;
 	default:
 		;
@@ -104,12 +110,21 @@ void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
 //! [4]
 
 //! [5]
-void MainWindow::showMessage()
+void MainWindow::showMessage(int type, QString title, QString text, int duration)
 {
-	QSystemTrayIcon::MessageIcon msgIcon = QSystemTrayIcon::MessageIcon(
-			typeComboBox->itemData(typeComboBox->currentIndex()).toInt());
-		trayIcon->showMessage(titleEdit->text(), bodyEdit->toPlainText(), msgIcon,
-						  durationSpinBox->value() * 1000);
+	QSystemTrayIcon::MessageIcon msgIcon = QSystemTrayIcon::Information;
+	switch (type) {
+	case INFO:
+		msgIcon = QSystemTrayIcon::Information;
+		break;
+	case WARNING:
+		msgIcon = QSystemTrayIcon::Warning;
+		break;
+	case ERROR:
+		msgIcon = QSystemTrayIcon::Critical;
+		break;
+	}
+	trayIcon->showMessage(title, text , msgIcon, duration * 1000);
 }
 //! [5]
 
@@ -185,6 +200,12 @@ void MainWindow::createMessageGroupBox()
 
 void MainWindow::createActions()
 {
+	showLogAction = new QAction(tr("Show &Log"), this);
+	connect(showLogAction, &QAction::triggered, logForm, &QWidget::show);
+
+	showCalibrationAction = new QAction(tr("Show &Calibration graphs"), this);
+	connect(showCalibrationAction, &QAction::triggered, this, &MainWindow::showCalibration);
+
 	minimizeAction = new QAction(tr("Mi&nimize"), this);
 	connect(minimizeAction, &QAction::triggered, this, &QWidget::hide);
 
@@ -201,6 +222,9 @@ void MainWindow::createActions()
 void MainWindow::createTrayIcon()
 {
 	trayIconMenu = new QMenu(this);
+	trayIconMenu->addAction(showLogAction);
+	trayIconMenu->addAction(showCalibrationAction);
+	trayIconMenu->addSeparator();
 	trayIconMenu->addAction(minimizeAction);
 	trayIconMenu->addAction(maximizeAction);
 	trayIconMenu->addAction(restoreAction);
@@ -224,103 +248,34 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::start() {
 	isConnected = false;
 	msa::getInstance().currentScan.steps = new QHash<quint32, msa::scanStep>();
-//	hardwareDevice::scanStruct scan;
-//	scan.configuration.LO2 = 1024;
-//	scan.configuration.appxdds1 = 10.7;
-//	scan.configuration.baseFrequency = 0;
-//	scan.configuration.PLL1phasefreq = 0.974;
-//	scan.configuration.finalFrequency = 10.7;
-//	scan.configuration.masterOscilatorFrequency = 64;
-//	for(int x = 0; x < 400; ++x) {
-//		hardwareDevice::scanStep step;
-//		step.frequency = -0.075 + (x*(0.15/399));
-//		scan.steps.insert(x, step);
-//		////qDebug() << -0.075 + (x*(0.15/400));
-//	}
-//	hardwareDevice::currentScan = scan;
-//	lmx.processNewScan();
-//	ad9850 ad(hardwareDevice::DDS1, this);
-//	ad.init();
-//	lmx.init();
-//	ad.processNewScan();
+	configurator = new hardwareConfigWidget();
+	configurator->loadSavedSettings();
+	configurator->loadSettingsToGui();
+	configurator->show();
+	hardwareConfigWidget::appSettings_t appSettings = configurator->getAppSettings();
+	startServer(appSettings);
 
-//	s.init(3);
-//	if(s.getDevices().size() > 0)
-//	//qDebug() << "--"<< s.getDevices().at(0).serial<< s.getDevices().at(0).deviceNumber;
-//	s.openDevice(3);
+	loadHardware(appSettings);
 
-	settings = new QSettings("JBTech", "OpenMSA", this);
-	settings->clear();
-	setServerPort(static_cast<quint16>(settings->value("app/serverPort", 1234).toInt()));
-	//DEBUG
-	server = new ComProtocol(this, settings->value("app/debugLevel", 0).toInt());
-	server->setServerPort(getServerPort());
-	if(!server->startServer())
-		QMessageBox::critical(this, "Socket server failed to start","Please fix the issue and restart the application");
-	connect(server, &ComProtocol::serverConnected, this, &MainWindow::newConnection);
-	connect(server, &ComProtocol::packetReceived, this, &MainWindow::onMessageReceivedServer);
-	if(settings->value("app/connectionType", interface::USB).toInt() == interface::USB)
-		hwInterface = new simulator(this);
-	connect(hwInterface, SIGNAL(dataReady(quint32,quint32,quint32)), this, SLOT(dataReady(quint32, quint32, quint32)));
-	hwInterface->setWriteReadDelay_us(settings->value("msa/hardwareConfig/writeReadDelay_us", 1000).toUInt());
-	devices.insert(msa::PLL1, settings->value("msa/hardwareTypes/PLL1", static_cast <int>(hardwareDevice::LMX2326)).toInt());
-	devices.insert(msa::PLL2, settings->value("msa/hardwareTypes/PLL2", static_cast <int>(hardwareDevice::LMX2326)).toInt());
-	devices.insert(msa::DDS1, settings->value("msa/hardwareTypes/DDS1", static_cast <int>(hardwareDevice::AD9850)).toInt());
-	devices.insert(msa::PLL3, settings->value("msa/hardwareTypes/PLL3", static_cast <int>(hardwareDevice::LMX2326)).toInt());
-	devices.insert(msa::DDS3, settings->value("msa/hardwareTypes/DDS1", static_cast <int>(hardwareDevice::AD9850)).toInt());
-	devices.insert(msa::ADC_MAG, settings->value("msa/hardwareTypes/ADC_MAG", static_cast <int>(hardwareDevice::AD7685)).toInt());
-	devices.insert(msa::ADC_PH, settings->value("msa/hardwareTypes/ADC_PH", static_cast <int>(hardwareDevice::AD7685)).toInt());
-	//DEBUG
-	hwInterface->init(settings->value("app/debugLevel", 08).toInt());
-	msa::scanConfig config;
-	config.LO2 = static_cast <double>(settings->value("msa/hardwareConfig/LO2", 1024).toFloat());
-	config.appxdds1 = static_cast <double>(settings->value("msa/hardwareConfig/appxdds1", 10.7).toFloat());
-	config.appxdds3 = static_cast <double>(settings->value("msa/hardwareConfig/appxdds3", 10.7).toFloat());
-	config.baseFrequency = static_cast <double>(settings->value("msa/hardwareConfig/baseFrequency", 0).toFloat());
-	config.PLL1phasefreq = static_cast <double>(settings->value("msa/hardwareConfig/PLL1phasefreq", 0.974).toFloat());
-	config.PLL2phasefreq = static_cast <double>(settings->value("msa/hardwareConfig/PLL2phasefreq", 4).toFloat());
-	config.PLL3phasefreq = static_cast <double>(settings->value("msa/hardwareConfig/PLL3phasefreq", 0.974).toFloat());
-	config.finalFilterFrequency = static_cast <double>(settings->value("msa/hardwareConfig/finalFilterFrequency", 10.7).toFloat());
-	config.masterOscilatorFrequency = static_cast <double>(settings->value("msa/hardwareConfig/masterOscilatorFrequency", 64).toFloat());
-	config.dds1Filterbandwidth = static_cast <double>(settings->value("msa/hardwareConfig/dds1Filterbandwidth", 0.015).toFloat());
-	config.dds3Filterbandwidth = static_cast <double>(settings->value("msa/hardwareConfig/dds3Filterbandwidth", 0.015).toFloat());
-	config.PLL1phasepolarity_inverted = settings->value("msa/hardwareConfig/PLL1phasepolarity_inverted", true).toBool();
-	config.PLL2phasepolarity_inverted = settings->value("msa/hardwareConfig/PLL2phasepolarity_inverted", false).toBool();
-	config.PLL3phasepolarity_inverted = settings->value("msa/hardwareConfig/PLL3phasepolarity_inverted", true).toBool();
-	config.finalFilterBandwidth = static_cast <double>(settings->value("msa/hardwareConfig/finalFilterBandwidth", 0.015).toFloat());;
+	msa::scanConfig config = configurator->getConfig();
 
-	config.scanType = ComProtocol::SA_TG;
-	config.adcAveraging = 2;
-	config.gui.TGoffset = 0;
-	config.gui.TGreversed = false;
-	config.gui.SGout = 10;
-	config.gui.SGout_multi = 1000000;
+	loadCalibrationFiles(&config);
 
-	config.gui.stop_multi = 1000000;
-	config.gui.start_multi = 1000000;
-	config.gui.step_freq_multi = 1000000;
-	config.gui.center_freq_multi = 1000000;
-	config.gui.span_freq_multi = 1000000;
-	config.gui.band = -1;
-	config.gui.stop = 0.075;
-	config.gui.start = -0.075;
-	config.gui.scanType = ComProtocol::scanType_t(config.scanType);
-	config.gui.steps_number = 400;
-	config.gui.step_freq = (config.gui.stop - config.gui.start) / config.gui.steps_number;
-	config.gui.center_freq = config.gui.start + ((config.gui.stop - config.gui.start) / 2);
-	config.gui.stepModeAuto = false;
-	config.gui.isStepInSteps = true;
-	config.gui.span_freq = (config.gui.stop - config.gui.start);
-	config.gui.TGoffset_multi = 1000000;
+	if(config.pathCalibrationList.length() == 1)
+		config.currentFinalFilterName = config.pathCalibrationList.at(0).pathName;
+
 	msa::getInstance().setScanConfiguration(config);
-	connect(hwInterface,SIGNAL(connected()), this,SLOT(on_Connect()));
-	connect(hwInterface,SIGNAL(disconnected()), this,SLOT(on_Disconnect()));
+
+	bool found = msa::getInstance().setPathCalibrationAndExtrapolate(config.currentFinalFilterName);
+	if(found)
+		emit triggerMessage(INFO, QString("%1 path chosen").arg(config.currentFinalFilterName), QString("Center:%1MHz Bandwidth:%2MHz").arg(msa::getInstance().getScanConfiguration().pathCalibration.centerFreq_MHZ).arg(msa::getInstance().getScanConfiguration().pathCalibration.bandwidth_MHZ), 7);
+	else
+		emit triggerMessage(INFO, "There was a problem setting the path in use", "the path was not found", 7);
+
+	connect(hwInterface,SIGNAL(connected()), this,SLOT(on_Connect()), Qt::UniqueConnection);
+	connect(hwInterface,SIGNAL(disconnected()), this,SLOT(on_Disconnect()), Qt::UniqueConnection);
 	if(hwInterface->getIsConnected())
 		on_Connect();
-
-//	msa::getInstance().hardwareInit(devices, hwInterface);
-//	msa::getInstance().initScan(false, -0.075, 0.075, 0.15/400);
-//	hwInterface->autoScan();
 }
 
 MainWindow::~MainWindow()
@@ -329,6 +284,7 @@ MainWindow::~MainWindow()
 	delete ui;
 #endif
 	delete msa::getInstance().currentScan.steps;
+	logForm->deleteLater();
 }
 
 void MainWindow::on_pushButton_clicked()
@@ -341,9 +297,10 @@ void MainWindow::dataReady(quint32 step, quint32 mag, quint32 phase)
 		qDebug() << "received step:" << step << "MAG=" << mag << "PHASE=" << phase;
 	if(server->isConnected()) {
         ComProtocol::msg_dual_dac dac;
-        dac.mag = mag;
-        dac.phase = phase;
-        dac.step = step;
+		dac.mag = msa::getInstance().currentScan.configuration.pathCalibration.adcToMagCalFactors.value(mag).dbm_val;
+		dac.phase = msa::getInstance().currentScan.configuration.pathCalibration.adcToMagCalFactors.value(mag).phase_val;
+		dac.mag += msa::getInstance().currentScan.configuration.frequencyCalibration.freqToPower.value(msa::getInstance().currentScan.steps->value(step).realFrequency);
+		dac.step = step;
 		QMutexLocker locker(&messageSend);
         server->sendMessage(ComProtocol::DUAL_DAC, ComProtocol::MESSAGE_SEND, &dac);
     }
@@ -370,6 +327,7 @@ void MainWindow::on_Disconnect()
 
 void MainWindow::newConnection()
 {	
+	emit triggerMessage(INFO, "Server", "New client connected", 3);
 	ComProtocol::msg_scan_config cfg_msg;
 	msa::scanConfig config = msa::getInstance().getScanConfiguration();
 	cfg_msg = config.gui;
@@ -395,24 +353,99 @@ void MainWindow::onMessageReceivedServer(ComProtocol::messageType type, QByteArr
 	config.scanType = m_config.scanType;
 	config.gui = m_config;
 	msa::getInstance().setScanConfiguration(config);
+	bool ok;
 	if(m_config.isStepInSteps)// TODO HANDLE m_config.stepModeAuto
-		msa::getInstance().initScan(false,  m_config.start, m_config.stop, quint32(m_config.step_freq), m_config.band);
+		ok = msa::getInstance().initScan(false,  m_config.start, m_config.stop, m_config.steps_number, m_config.band);
 	else {
-		msa::getInstance().initScan(false,  m_config.start, m_config.stop, m_config.step_freq, m_config.band);
+		ok = msa::getInstance().initScan(false,  m_config.start, m_config.stop, m_config.step_freq, m_config.band);
 	}
+	if(ok)
+		server->sendMessage(ComProtocol::SCAN_CONFIG, ComProtocol::MESSAGE_SEND, &m_config);
 	if(lastMessage != 0) {
-		Q_ASSERT(msgNumber - lastMessage == 1);
+		//Q_ASSERT(msgNumber - lastMessage == 1);
 	}
 	lastMessage = msgNumber;
 }
 
-quint16 MainWindow::getServerPort() const
+void MainWindow::interfaceError(QString text, bool critical, bool sendToGui)
 {
-	return serverPort;
+	emit triggerMessage(ERROR, "Error", text, 3);
+	if(sendToGui) {
+		ComProtocol::msg_error_info msg;
+		msg.isCritical = critical;
+		strcpy(msg.text, text.toLatin1().constData());
+		server->sendMessage(ComProtocol::ERROR_INFO, ComProtocol::MESSAGE_SEND, &msg);
+	}
 }
 
-void MainWindow::setServerPort(const quint16 &value)
+void MainWindow::showCalibration()
 {
-	serverPort = value;
+	calibrationViewer *v = new calibrationViewer();
+	v->show();
 }
 
+void MainWindow::loadCalibrationFiles(msa::scanConfig *config)
+{
+	bool s;
+	QString err;
+	config->frequencyCalibration = m_calParser.loadFreqCalDataFromFile( m_calParser.getConfigLocation() + QDir::separator() + STANDARD_FREQ_CAL_FILENAME, s, err);
+	if(!s) {
+		emit triggerMessage(WARNING, "Could not load Freq cal file", err, 5);
+		config->frequencyCalibration.freqToPower.insert(0, 0);
+		config->frequencyCalibration.freqToPower.insert(1000, 0);
+	}
+
+	config->pathCalibrationList = m_calParser.loadMagPhaseCalDataFromFile(m_calParser.getConfigLocation() + QDir::separator() + STANDARD_PATHS_CAL_FILENAME, s, err);
+	if(!s)
+		emit triggerMessage(WARNING, "Could not load Mag Phase cal file", err, 5);
+	if(config->pathCalibrationList.length() && s)
+		config->pathCalibration = config->pathCalibrationList.first();
+	else {
+		emit triggerMessage(WARNING, "Mag Phase Cal", "Using dummy values", 5);
+		config->pathCalibration.pathName = "DUMMY";
+		config->pathCalibration.controlPin = -1;
+		config->pathCalibration.bandwidth_MHZ = 0.00015;
+		config->pathCalibration.centerFreq_MHZ = 10.7;
+		calParser::magCalFactors f;
+		f.dbm_val = -120;
+		f.phase_val = 0;
+		config->pathCalibration.adcToMagCalFactors.insert(0, f);
+		f.dbm_val = 0;
+		config->pathCalibration.adcToMagCalFactors.insert(32767, f);
+	}
+}
+
+void MainWindow::startServer(hardwareConfigWidget::appSettings_t &appSettings)
+{
+	//DEBUG
+	server = new ComProtocol(this, appSettings.debugLevel);
+	server->setServerPort(appSettings.serverPort);
+	if(!server->startServer())
+		emit triggerMessage(WARNING, "", QString("Socket server failed to start on port %1, Please fix the issue and restart the application").arg(appSettings.serverPort), 5);
+	connect(server, &ComProtocol::serverConnected, this, &MainWindow::newConnection, Qt::UniqueConnection);
+	connect(server, &ComProtocol::packetReceived, this, &MainWindow::onMessageReceivedServer, Qt::UniqueConnection);
+
+}
+
+void MainWindow::loadHardware(hardwareConfigWidget::appSettings_t &settings)
+{
+	if(hwInterface)
+		delete hwInterface;
+	if(settings.currentInterfaceType == interface::SIMULATOR)
+		hwInterface = new simulator(this);
+	else if (settings.currentInterfaceType == interface::USB) {
+		hwInterface = new slimusb(this);
+	}
+	else {
+		qDebug() << settings.currentInterfaceType;
+		Q_ASSERT(false);
+	}
+	connect(hwInterface, SIGNAL(dataReady(quint32,quint32,quint32)), this, SLOT(dataReady(quint32, quint32, quint32)), Qt::UniqueConnection);
+	connect(hwInterface, &interface::errorTriggered, this, &MainWindow::interfaceError, Qt::UniqueConnection);
+	hwInterface->setWriteReadDelay_us(settings.readWriteDelay);
+	devices.clear();
+	foreach (msa::MSAdevice dev, settings.devices.keys()) {
+		devices.insert(dev, settings.devices.value(dev));
+	}
+	hwInterface->init(settings.debugLevel);
+}

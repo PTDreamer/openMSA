@@ -56,6 +56,7 @@ public:
 	bool isScanning();
 	QByteArray convertStringToByteArray(QString str);
 	bool sendArrayForDebug(QByteArray);
+	interface_types type() {return SIMULATOR;}
 protected:
 	void run();
 public slots:

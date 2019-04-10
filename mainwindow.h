@@ -10,8 +10,11 @@
 #include <QMutexLocker>
 #include "shared/comprotocol.h"
 #include "QSettings"
-
+#include "helperform.h"
 #include <QSystemTrayIcon>
+#include "calparser.h"
+#include "calibrationviewer.h"
+#include "hardwareconfigwidget.h"
 
 #ifndef QT_NO_SYSTEMTRAYICON
 
@@ -61,10 +64,11 @@ public:
 
 protected:
 	void closeEvent(QCloseEvent *event) override;
+	typedef enum {INFO, WARNING, ERROR} message_type;
 
 private slots:
 	void iconActivated(QSystemTrayIcon::ActivationReason reason);
-	void showMessage();
+	void showMessage(int type, QString title, QString text, int duration);
 	void messageClicked();
 
 private:
@@ -87,6 +91,8 @@ private:
 	QPushButton *showMessageButton;
 
 	QAction *minimizeAction;
+	QAction *showLogAction;
+	QAction *showCalibrationAction;
 	QAction *maximizeAction;
 	QAction *restoreAction;
 	QAction *quitAction;
@@ -95,9 +101,9 @@ private:
 	QMenu *trayIconMenu;
 
 #endif
-	quint16 getServerPort() const;
-	void setServerPort(const quint16 &value);
 
+signals:
+	void triggerMessage(int type, QString title, QString text, int duration);
 private slots:
 	void on_pushButton_clicked();
 	void dataReady(quint32, quint32, quint32);
@@ -105,17 +111,23 @@ private slots:
 	void on_Disconnect();
 	void newConnection();
 	void onMessageReceivedServer(ComProtocol::messageType, QByteArray);
+	void interfaceError(QString, bool, bool);
+	void showCalibration();
 private:
+	void loadCalibrationFiles(msa::scanConfig *config);
+	void startServer(hardwareConfigWidget::appSettings_t &settings);
+	void loadHardware(hardwareConfigWidget::appSettings_t &settings);
+	calParser m_calParser;
+	HelperForm *logForm;
 	QHash<msa::MSAdevice, int> devices;
 	interface *hwInterface;
 	QMutex mutex;
 	QMutex messageSend;
 	bool isConnected;
 
-	quint16 serverPort;
 	ComProtocol *server;
 
-	QSettings *settings;
+	hardwareConfigWidget *configurator;
 	void start();
 };
 #endif // MAINWINDOW_H

@@ -2,10 +2,10 @@
  ******************************************************************************
  *
  * @file       main.cpp
- * @author     Jose Barros (AKA PT_Dreamer) josemanuelbarros@gmail.com 2018
- * @brief      deviceparser.h file
+ * @author     Jose Barros (AKA PT_Dreamer) josemanuelbarros@gmail.com 2019
+ * @brief      helperform.h file
  * @see        The GNU Public License (GPL) Version 3
- * @defgroup   deviceParser
+ * @defgroup   HelperForm
  * @{
  *
  *****************************************************************************/
@@ -23,30 +23,27 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, see <http://www.gnu.org/licenses/>
  */
-#ifndef DEVICEPARSER_H
-#define DEVICEPARSER_H
+#ifndef HELPERFORM_H
+#define HELPERFORM_H
 
-#include <QObject>
-#include "hardwaredevice.h"
-#include <QHash>
-#include "msa.h"
+#include <QWidget>
 
-class deviceParser:public QObject
+namespace Ui {
+class HelperForm;
+}
+
+class HelperForm : public QWidget
 {
 	Q_OBJECT
+
 public:
-	deviceParser(msa::MSAdevice dev, hardwareDevice *parent);
-	double parsePLLRCounter(msa::scanConfig config);
-	double parsePLLNCounter(msa::scanConfig configuration, msa::scanStep &step, quint32 stepNumber, bool &error, bool &fatalError);
-	bool getPLLinverted(msa::scanConfig config);
-	quint32 parseDDSOutput(msa::scanConfig configuration, quint32 stepNumber, bool &error, bool &fatalError);
-	hardwareDevice::HWdevice getDeviceType() {return hwdev;}
-	msa::MSAdevice getDevice() {return msadev;}
-	~deviceParser();
+	explicit HelperForm(QWidget *parent = nullptr);
+	~HelperForm();
+
 private:
-	msa::MSAdevice msadev;
-	hardwareDevice::HWdevice hwdev;
-	hardwareDevice *device;
+	Ui::HelperForm *ui;
+public slots:
+	void showMessage(int type, QString title, QString text, int duration);
 };
 
-#endif // DEVICEPARSER_H
+#endif // HELPERFORM_H
