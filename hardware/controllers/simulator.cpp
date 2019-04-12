@@ -159,6 +159,11 @@ bool simulator::initScan()
 			arr->append(char(byte | msa::getInstance().getResolution_filter_bank()));
 		}
 	}
+	QList<quint32> l = usbData.keys();
+	std::sort(l.begin(), l.end());
+	foreach(quint32 v, l) {
+		qDebug() << v << usbData.value(v);
+	}
 	adcSend.clear();
 	if((msa::getInstance().currentScan.configuration.scanType != ComProtocol::VNA_Rec) && (msa::getInstance().currentScan.configuration.scanType != ComProtocol::VNA_Trans)) {
 		adcSend.append(char(0xB2));//TODO

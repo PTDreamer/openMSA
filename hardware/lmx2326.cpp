@@ -95,6 +95,7 @@ hardwareDevice::clockType lmx2326::getClk_type() const
 
 bool lmx2326::processNewScan()
 {
+
 	bool error;
 	bool hasError = false;
 	bool hasFatalError = false;

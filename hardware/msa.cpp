@@ -115,7 +115,8 @@ bool msa::initScan(bool inverted, double start, double end, quint32 steps, int b
 			break;
 		}
 		s.band = bandSelect;
-		//qDebug() << "step:" << x << "real frequency:" << s.realFrequency << "translated frequency:" << s.translatedFrequency;
+		qDebug() << start << end << steps;
+		qDebug() << "step:" << x << "real frequency:" << s.realFrequency << "translated frequency:" << s.translatedFrequency;
 		msa::getInstance().currentScan.steps->insert(x, s);
 	}
 	isInverted = inverted;
