@@ -62,9 +62,21 @@ public:
 		int band;
 		double frequencyCal;
 	} scanStep;
+        typedef  struct {
+            int address;
+            double value;
+        } videoFilter_t;
+
+        typedef  struct {
+            int address;
+            double centerFrequency;
+            double bandwidth;
+        } resolutionFilter_t;
 
 	typedef struct {
-		calParser::freqCalData frequencyCalibration;
+                QHash<QString, videoFilter_t> videoFilters;
+                QHash<QString, resolutionFilter_t> resolutionFilters;
+                calParser::freqCalData frequencyCalibration;
 		QList<calParser::magPhaseCalData> pathCalibrationList;
 		calParser::magPhaseCalData pathCalibration;
 		QString currentFinalFilterName;

@@ -128,14 +128,18 @@ bool slimusb::initScan()
 	int maxSize = 0;
 	bool error = false;
 	interface::initScan();
-	if(pll1)
+	if(pll1) {
 		error |= pll1->processNewScan();
-	if(dds1)
+	}
+	if(dds1) {
 		error |= dds1->processNewScan();
-	if(pll3)
+	}
+	if(pll3) {
 		error |= pll3->processNewScan();
-	if(dds3)
+	}
+	if(dds3) {
 		error |= dds3->processNewScan();
+	}
 	if(error)
 		msa::getInstance().currentInterface->errorOcurred(msa::MSA, "Error ocurred processing new scan", true, true);
 	qDeleteAll(usbData.values());

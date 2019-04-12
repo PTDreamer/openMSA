@@ -37,6 +37,33 @@ hardwareConfigWidget::hardwareConfigWidget(QWidget *parent) :
 
 hardwareConfigWidget::~hardwareConfigWidget()
 {
+	if(getSaveSettingsOnExit()) {
+		settings->setValue("app/lastValues/scanType", config.scanType);
+		settings->setValue("app/lastValues/adcAveraging", config.adcAveraging);
+		settings->setValue("app/lastValues/TGoffset", config.gui.TGoffset);
+		settings->setValue("app/lastValues/TGreversed", config.gui.TGreversed);
+		settings->setValue("app/lastValues/SGout", config.gui.SGout);
+		settings->setValue("app/lastValues/SGout_multi", config.gui.SGout_multi);
+
+		settings->setValue("app/lastValues/stop_multi", config.gui.stop_multi);
+		settings->setValue("app/lastValues/start_multi", config.gui.start_multi);
+		settings->setValue("app/lastValues/step_freq_multi", config.gui.step_freq_multi);
+		settings->setValue("app/lastValues/center_freq_multi", config.gui.center_freq_multi);
+		settings->setValue("app/lastValues/span_freq_multi", config.gui.span_freq_multi);
+		settings->setValue("app/lastValues/band", config.gui.band);
+		settings->setValue("app/lastValues/stop", config.gui.stop);
+		settings->setValue("app/lastValues/start", config.gui.start);
+
+		settings->setValue("app/lastValues/isInvertedScan", config.gui.isInvertedScan);
+
+		settings->setValue("app/lastValues/steps_number", config.gui.steps_number);
+
+		settings->setValue("app/lastValues/stepModeAuto", 	config.gui.stepModeAuto);
+		settings->setValue("app/lastValues/isStepInSteps", config.gui.isStepInSteps);
+
+		settings->setValue("app/lastValues/TGoffset_multi", config.gui.TGoffset_multi);
+		settings->sync();
+	}
 	delete ui;
 }
 
@@ -60,15 +87,28 @@ void hardwareConfigWidget::setAppSettings(const appSettings_t &value)
 	appSettings = value;
 }
 
+bool hardwareConfigWidget::getSaveSettingsOnExit() const
+{
+	return saveSettingsOnExit;
+}
+
+void hardwareConfigWidget::setSaveSettingsOnExit(bool value)
+{
+	saveSettingsOnExit = value;
+}
+
 void hardwareConfigWidget::loadSavedSettings(bool loadDefaults)
 {
 	settings = new QSettings("JBTech", "OpenMSA", this);
 	if(loadDefaults)
 		settings->clear();
+	setSaveSettingsOnExit(settings->value("app/saveSettingsOnExit", true).toBool());
+
 	appSettings.serverPort = quint16(settings->value("app/serverPort", 1234).toUInt());
 	appSettings.debugLevel = settings->value("app/debugLevel", 0).toInt();
 	appSettings.currentInterfaceType = interface::interface_types(settings->value("app/connectionType", interface::SIMULATOR).toUInt());
 	appSettings.devices.insert(msa::PLL1, hardwareDevice::HWdevice(settings->value("msa/hardwareTypes/PLL1", static_cast <int>(hardwareDevice::LMX2326)).toInt()));
+	appSettings.devices.insert(msa::PLL2, hardwareDevice::HWdevice(settings->value("msa/hardwareTypes/PLL2", static_cast <int>(hardwareDevice::LMX2326)).toInt()));
 	appSettings.devices.insert(msa::PLL3, hardwareDevice::HWdevice(settings->value("msa/hardwareTypes/PLL3", static_cast <int>(hardwareDevice::LMX2326)).toInt()));
 	appSettings.devices.insert(msa::DDS1, hardwareDevice::HWdevice(settings->value("msa/hardwareTypes/DDS1", static_cast <int>(hardwareDevice::AD9850)).toInt()));
 	appSettings.devices.insert(msa::DDS3, hardwareDevice::HWdevice(settings->value("msa/hardwareTypes/DDS3", static_cast <int>(hardwareDevice::AD9850)).toInt()));
@@ -124,10 +164,219 @@ void hardwareConfigWidget::loadSavedSettings(bool loadDefaults)
 
 	config.gui.span_freq = (config.gui.stop - config.gui.start);
 	config.gui.TGoffset_multi = settings->value("app/lastValues/TGoffset_multi", 1000000).toUInt();
+
+	int size = settings->beginReadArray("msa/hardwareConfig/resolutionFilters");
+	for (int i = 0; i < size; ++i) {
+		  settings->setArrayIndex(i);
+		  msa::resolutionFilter_t f;
+		  f.centerFrequency = settings->value("centerFrequency").toDouble();
+		  f.bandwidth = settings->value("bandwidth").toDouble();
+		  f.address = settings->value("address").toInt();
+
+		  config.resolutionFilters.insert(settings->value("name").toString(), f);
+	  }
+	settings->endArray();
+
+	size = settings->beginReadArray("msa/hardwareConfig/videoFilters");
+	for (int i = 0; i < size; ++i) {
+		  settings->setArrayIndex(i);
+		  msa::videoFilter_t v;
+		  v.value = settings->value("value").toDouble();
+		  v.address = settings->value("address").toInt();
+
+		  config.videoFilters.insert(settings->value("name").toString(), v);
+	  }
+	settings->endArray();
+}
+
+void hardwareConfigWidget::saveSettings()
+{
+	settings->setValue("app/saveSettingsOnExit", getSaveSettingsOnExit());
+
+	settings->setValue("app/serverPort", appSettings.serverPort);
+	settings->setValue("app/debugLevel", appSettings.debugLevel);
+	settings->setValue("app/connectionType", appSettings.currentInterfaceType);
+	settings->setValue("msa/hardwareTypes/PLL1", appSettings.devices.value(msa::PLL1));
+	settings->setValue("msa/hardwareTypes/PLL2", appSettings.devices.value(msa::PLL2));
+	settings->setValue("msa/hardwareTypes/PLL3", appSettings.devices.value(msa::PLL3));
+	settings->setValue("msa/hardwareTypes/DDS1", appSettings.devices.value(msa::DDS1));
+	settings->setValue("msa/hardwareTypes/DDS3", appSettings.devices.value(msa::DDS3));
+	settings->setValue("msa/hardwareTypes/ADC_MAG", appSettings.devices.value(msa::ADC_MAG));
+	settings->setValue("msa/hardwareTypes/ADC_PH", appSettings.devices.value(msa::ADC_PH));
+
+	settings->setValue("msa/hardwareConfig/writeReadDelay_us", appSettings.readWriteDelay);
+
+	settings->setValue("msa/hardwareConfig/PDMInversion_degrees", config.PDMInversion_degrees);
+	settings->setValue("msa/hardwareConfig/PDMMaxOut", config.PDMMaxOut);
+
+	settings->setValue("msa/hardwareConfig/LO2", config.LO2);
+	settings->setValue("msa/hardwareConfig/appxdds1", config.appxdds1);
+	settings->setValue("msa/hardwareConfig/appxdds3", config.appxdds3);
+	settings->setValue("msa/hardwareConfig/baseFrequency", config.baseFrequency);
+	settings->setValue("msa/hardwareConfig/PLL1phasefreq", config.PLL1phasefreq);
+	settings->setValue("msa/hardwareConfig/PLL2phasefreq", config.PLL2phasefreq);
+	settings->setValue("msa/hardwareConfig/PLL3phasefreq", config.PLL3phasefreq);
+	settings->setValue("msa/hardwareConfig/masterOscilatorFrequency", config.masterOscilatorFrequency);
+	settings->setValue("msa/hardwareConfig/dds1Filterbandwidth", config.dds1Filterbandwidth);
+	settings->setValue("msa/hardwareConfig/dds3Filterbandwidth", config.dds3Filterbandwidth);
+	settings->setValue("msa/hardwareConfig/PLL1phasepolarity_inverted", config.PLL1phasepolarity_inverted);
+	settings->setValue("msa/hardwareConfig/PLL2phasepolarity_inverted", config.PLL2phasepolarity_inverted);
+	settings->setValue("msa/hardwareConfig/PLL3phasepolarity_inverted", config.PLL3phasepolarity_inverted);
+	settings->setValue("msa/hardwareConfig/finalFilterName", config.currentFinalFilterName);
+
+
+
+	settings->beginWriteArray("msa/hardwareConfig/resolutionFilters");
+	int x = 0;
+	foreach(QString name, config.resolutionFilters.keys()) {
+		  settings->setArrayIndex(x);
+		  ++x;
+		  settings->setValue("centerFrequency", config.resolutionFilters.value(name).centerFrequency);
+		  settings->setValue("bandwidth", config.resolutionFilters.value(name).bandwidth);
+		  settings->setValue("address", config.resolutionFilters.value(name).address);
+		  settings->setValue("name", name);
+	}
+	  settings->endArray();
+	  settings->beginWriteArray("msa/hardwareConfig/videoFilters");
+	  x = 0;
+	  foreach(QString name, config.videoFilters.keys()) {
+			settings->setArrayIndex(x);
+			++x;
+			settings->setValue("value", config.videoFilters.value(name).value);
+			settings->setValue("address", config.videoFilters.value(name).address);
+			settings->setValue("name", name);
+	  }
+		settings->endArray();
+
+		settings->sync();
+}
+
+void hardwareConfigWidget::setSettingsFromGui()
+{
+	setSaveSettingsOnExit(ui->save_settings_on_exit->isChecked());
+	appSettings.serverPort = quint16(ui->server_port->value());
+	appSettings.debugLevel = ui->debug_level->currentIndex();
+	appSettings.currentInterfaceType = interface::interface_types(ui->hw_interface->currentIndex());
+	switch (ui->pll1_type->currentIndex()) {
+	case 0:
+		appSettings.devices.insert(msa::PLL1, hardwareDevice::LMX2326);
+		break;
+	default:
+		Q_ASSERT(0);
+		break;
+	}
+
+	switch (ui->pll2_type->currentIndex()) {
+	case 0:
+		appSettings.devices.insert(msa::PLL2, hardwareDevice::LMX2326);
+		break;
+	default:
+		Q_ASSERT(0);
+		break;
+	}
+
+	switch (ui->pll3_type->currentIndex()) {
+	case 0:
+		appSettings.devices.insert(msa::PLL3, hardwareDevice::LMX2326);
+		break;
+	case 1:
+		appSettings.devices.insert(msa::PLL3, hardwareDevice::LMX2326);
+		break;
+	default:
+		Q_ASSERT(0);
+		break;
+	}
+
+	switch (ui->dds3_type->currentIndex()) {
+	case 0:
+		appSettings.devices.insert(msa::DDS3, hardwareDevice::AD9850);
+		break;
+	case 1:
+		appSettings.devices.insert(msa::DDS3, hardwareDevice::AD9850);
+		break;
+	default:
+		Q_ASSERT(0);
+		break;
+	}
+
+	switch (ui->dds1_type->currentIndex()) {
+	case 0:
+		appSettings.devices.insert(msa::DDS1, hardwareDevice::AD9850);
+		break;
+	case 1:
+		appSettings.devices.insert(msa::DDS1, hardwareDevice::AD9850);
+		break;
+	default:
+		Q_ASSERT(0);
+		break;
+	}
+
+	switch (ui->adc_mag_type->currentIndex()) {
+	case 0:
+		appSettings.devices.insert(msa::ADC_MAG, hardwareDevice::AD7685);
+		break;
+	default:
+		Q_ASSERT(0);
+		break;
+	}
+
+	switch (ui->adc_phase_type->currentIndex()) {
+	case 0:
+		appSettings.devices.insert(msa::ADC_PH, hardwareDevice::AD7685);
+		break;
+	default:
+		Q_ASSERT(0);
+		break;
+	}
+
+	appSettings.readWriteDelay = uint(ui->read_write_delay->value());
+	config.LO2 = ui->pll2_plo2_frequency->value();
+
+	config.appxdds1 = ui->dds1_frequency->value();
+	config.appxdds3 = ui->dds3_frequency->value();
+
+	config.baseFrequency = ui->base_frequency->value();
+	config.PLL1phasefreq = ui->pll1_frequency->value();
+	config.PLL2phasefreq = ui->pll2_frequency->value();
+	config.PLL3phasefreq = ui->pll3_frequency->value();
+
+	config.masterOscilatorFrequency = ui->master_osc_frequency->value();
+	config.dds1Filterbandwidth = ui->dds1_bandwidth->value();
+	config.dds3Filterbandwidth = ui->dds3_bandwidth->value();
+
+	config.PLL1phasepolarity_inverted = ui->pll1_inverted->isChecked();
+	config.PLL2phasepolarity_inverted = ui->pll2_inverted->isChecked();
+	config.PLL3phasepolarity_inverted = ui->pll3_inverted->isChecked();
+
+	config.PDMInversion_degrees = ui->pdm_inversion_degrees->value();
+	config.PDMMaxOut = quint32(ui->pdm_max_out->value());
+
+	config.resolutionFilters.clear();
+	config.videoFilters.clear();
+
+	for(int x = 0; x < ui->resolution_filters_table->rowCount(); ++x) {
+		msa::resolutionFilter_t r;
+
+		QString name = ui->resolution_filters_table->item(x, 0)->text();
+		r.centerFrequency = ui->resolution_filters_table->item(x, 1)->text().toDouble();
+		r.bandwidth = ui->resolution_filters_table->item(x, 2)->text().toDouble();
+		r.address = ui->resolution_filters_table->item(x, 3)->text().toInt();
+		config.resolutionFilters.insert(name, r);
+	}
+
+	for(int x = 0; x < ui->video_filters_table->rowCount(); ++x) {
+		msa::videoFilter_t v;
+
+		QString name = ui->video_filters_table->item(x, 0)->text();
+		v.value = ui->video_filters_table->item(x, 1)->text().toDouble();
+		v.address = ui->video_filters_table->item(x, 2)->text().toInt();
+		config.videoFilters.insert(name, v);
+	}
 }
 
 void hardwareConfigWidget::loadSettingsToGui()
 {
+	ui->save_settings_on_exit->setChecked(getSaveSettingsOnExit());
 	ui->server_port->setValue(appSettings.serverPort);
 	ui->debug_level->setCurrentIndex(appSettings.debugLevel);
 	ui->hw_interface->setCurrentIndex(appSettings.currentInterfaceType);
@@ -225,6 +474,23 @@ void hardwareConfigWidget::loadSettingsToGui()
 
 	ui->pdm_inversion_degrees->setValue(config.PDMInversion_degrees);
 	ui->pdm_max_out->setValue(int(config.PDMMaxOut));
+
+	foreach(QString name, config.videoFilters.keys()) {
+		ui->video_filters_table->insertRow(ui->video_filters_table->rowCount());
+		ui->video_filters_table->setItem(ui->video_filters_table->rowCount()-1, 0,  new QTableWidgetItem(name));
+		ui->video_filters_table->setItem(ui->video_filters_table->rowCount()-1, 1,  new QTableWidgetItem(QString::number((config.videoFilters.value(name).value))));
+		ui->video_filters_table->setItem(ui->video_filters_table->rowCount()-1, 2,  new QTableWidgetItem(QString::number((config.videoFilters.value(name).address))));
+	}
+
+
+	foreach(QString name, config.resolutionFilters.keys()) {
+		ui->resolution_filters_table->insertRow(ui->resolution_filters_table->rowCount());
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 0,  new QTableWidgetItem(name));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 1,  new QTableWidgetItem(QString::number(config.resolutionFilters.value(name).centerFrequency)));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 2,  new QTableWidgetItem(QString::number((config.resolutionFilters.value(name).bandwidth))));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 3,  new QTableWidgetItem(QString::number((config.resolutionFilters.value(name).address))));
+	}
+
 	ui->resolution_filters_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 	ui->video_filters_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 }
@@ -253,4 +519,22 @@ void hardwareConfigWidget::on_pb_load_defaults_clicked()
 {
 	loadSavedSettings(true);
 	loadSettingsToGui();
+}
+
+void hardwareConfigWidget::on_pb_save_and_exit_clicked()
+{
+	setSettingsFromGui();
+	saveSettings();
+	close();
+}
+
+void hardwareConfigWidget::on_pb_apply_clicked()
+{
+	setSettingsFromGui();
+}
+
+void hardwareConfigWidget::on_pb_cancel_clicked()
+{
+	loadSettingsToGui();
+	close();
 }

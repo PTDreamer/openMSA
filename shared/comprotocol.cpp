@@ -238,7 +238,7 @@ void ComProtocol::processReceivedMessage()
 			}
 			break;
 		case status::LOOKING_FOR_MSG_TYPE:
-			if(receiveBuffer.length() > 0) {
+			if(receiveBuffer.length() > 2) {
                 currentType = messageType(receiveBuffer.at(1));
 				if(messageSize.contains(currentType)) {
 					repeat = true;

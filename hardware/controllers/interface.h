@@ -37,14 +37,15 @@ public:
 	enum interface_types {USB, SIMULATOR};
 	interface(QObject *parent);
 	~interface();
-protected slots:
+public slots:
 	virtual void commandNextStep() = 0;
 	virtual void commandPreviousStep() = 0;
 	virtual void pauseScan() = 0;
 	virtual void resumeScan() = 0;
 	virtual bool isScanning() = 0;
-public:
 	virtual void autoScan() = 0;
+	virtual void cancelScan() = 0;
+public:
 	virtual bool getIsConnected() const = 0;
 	virtual bool init(int debugLevel) = 0;
 	virtual void setWriteReadDelay_us(unsigned long value) = 0;

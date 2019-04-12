@@ -13,7 +13,9 @@
 #include "helperform.h"
 #include <QSystemTrayIcon>
 #include "calparser.h"
+#ifndef NO_CHARTS
 #include "calibrationviewer.h"
+#endif
 #include "hardwareconfigwidget.h"
 
 #ifndef QT_NO_SYSTEMTRAYICON

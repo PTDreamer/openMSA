@@ -58,13 +58,19 @@ public:
 	appSettings_t getAppSettings() const;
 	void setAppSettings(const appSettings_t &value);
 
+	bool getSaveSettingsOnExit() const;
+	void setSaveSettingsOnExit(bool value);
+
 private:
 	Ui::hardwareConfigWidget *ui;
 	QSettings *settings;
 	msa::scanConfig config;
 	appSettings_t appSettings;
+	bool saveSettingsOnExit;
 public slots:
 	void loadSavedSettings(bool loadDefaults = false);
+	void saveSettings();
+	void setSettingsFromGui();
 	void loadSettingsToGui();
 private slots:
 	void on_pb_add_video_filter_clicked();
@@ -72,6 +78,9 @@ private slots:
 	void on_pb_add_resolution_filter_clicked();
 	void on_pb_delete_resolution_filter_clicked();
 	void on_pb_load_defaults_clicked();
+	void on_pb_save_and_exit_clicked();
+	void on_pb_apply_clicked();
+	void on_pb_cancel_clicked();
 };
 
 #endif // HARDWARECONFIGWIDGET_H

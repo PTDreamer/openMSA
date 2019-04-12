@@ -283,6 +283,7 @@ MainWindow::~MainWindow()
 #ifdef QT_NO_SYSTEMTRAYICON
 	delete ui;
 #endif
+	delete configurator;
 	delete msa::getInstance().currentScan.steps;
 	logForm->deleteLater();
 }
@@ -316,6 +317,8 @@ void MainWindow::on_Connect()
 	msa::getInstance().hardwareInit(devices, hwInterface);
 	//msa::getInstance().initScan(false, 95, 105, (quint32)2000, -1);
 	msa::getInstance().initScan(cfg.gui.isInvertedScan, cfg.gui.start, cfg.gui.stop, cfg.gui.steps_number, cfg.gui.band);
+//	msa::getInstance().initScan(cfg.gui.isInvertedScan, cfg.gui.start, cfg.gui.stop, cfg.gui.steps_number, cfg.gui.band);
+
 	hwInterface->autoScan();
 	isConnected = true;
 }
@@ -352,6 +355,7 @@ void MainWindow::onMessageReceivedServer(ComProtocol::messageType type, QByteArr
 	msa::scanConfig config = msa::getInstance().getScanConfiguration();
 	config.scanType = m_config.scanType;
 	config.gui = m_config;
+	msa::getInstance().currentInterface->cancelScan();
 	msa::getInstance().setScanConfiguration(config);
 	bool ok;
 	if(m_config.isStepInSteps)// TODO HANDLE m_config.stepModeAuto
@@ -359,6 +363,7 @@ void MainWindow::onMessageReceivedServer(ComProtocol::messageType type, QByteArr
 	else {
 		ok = msa::getInstance().initScan(false,  m_config.start, m_config.stop, m_config.step_freq, m_config.band);
 	}
+	msa::getInstance().currentInterface->autoScan();
 	if(ok)
 		server->sendMessage(ComProtocol::SCAN_CONFIG, ComProtocol::MESSAGE_SEND, &m_config);
 	if(lastMessage != 0) {
@@ -380,8 +385,10 @@ void MainWindow::interfaceError(QString text, bool critical, bool sendToGui)
 
 void MainWindow::showCalibration()
 {
+#ifndef NO_CHARTS
 	calibrationViewer *v = new calibrationViewer();
 	v->show();
+#endif
 }
 
 void MainWindow::loadCalibrationFiles(msa::scanConfig *config)

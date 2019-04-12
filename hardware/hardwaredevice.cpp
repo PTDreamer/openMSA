@@ -151,15 +151,12 @@ void hardwareDevice::registerToBuffer(quint64 *reg, int pin, quint32 step)
 		devicePins.value(pin)->data.insert(step, createPinData(registerSize));
 	QBitArray * arrayData = devicePins.value(pin)->data.value(step).dataArray;
 	QBitArray * arrayMask = devicePins.value(pin)->data.value(step).dataMask;
-	//arrayData->resize(registerSize + 1);
-	//arrayMask->resize(registerSize + 1);
-	arrayMask->fill(1);
+	arrayMask->fill(1 ,registerSize);
 	quint64 r = *reg;
 	for(int x = 0; x < registerSize; ++ x) {
 		(*arrayData)[registerSize - 1 - x] = r & (quint64)1;
 		r = r >> 1;
 	}
-	//arrayMask->setBit(registerSize);
 }
 
 genericPLL::genericPLL(QObject *parent):hardwareDevice(parent)
