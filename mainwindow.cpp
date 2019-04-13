@@ -40,6 +40,10 @@ MainWindow::MainWindow():hwInterface(nullptr)
 
 	iconLabel->setMinimumWidth(durationLabel->sizeHint().width());
 
+	configurator = new hardwareConfigWidget();
+	configurator->loadSavedSettings();
+	configurator->loadSettingsToGui();
+
 	createActions();
 	createTrayIcon();
 
@@ -200,10 +204,13 @@ void MainWindow::createMessageGroupBox()
 
 void MainWindow::createActions()
 {
-	showLogAction = new QAction(tr("Show &Log"), this);
-	connect(showLogAction, &QAction::triggered, logForm, &QWidget::show);
+	showConfigAction = new QAction(tr("Show &Log"), this);
+	connect(showConfigAction, &QAction::triggered, logForm, &QWidget::show);
 
-	showCalibrationAction = new QAction(tr("Show &Calibration graphs"), this);
+	showLogAction = new QAction(tr("Show &Configuration"), this);
+	connect(showLogAction, &QAction::triggered, configurator, &QWidget::show);
+
+	showCalibrationAction = new QAction(tr("Show Ca&libration graphs"), this);
 	connect(showCalibrationAction, &QAction::triggered, this, &MainWindow::showCalibration);
 
 	minimizeAction = new QAction(tr("Mi&nimize"), this);
@@ -222,6 +229,7 @@ void MainWindow::createActions()
 void MainWindow::createTrayIcon()
 {
 	trayIconMenu = new QMenu(this);
+	trayIconMenu->addAction(showConfigAction);
 	trayIconMenu->addAction(showLogAction);
 	trayIconMenu->addAction(showCalibrationAction);
 	trayIconMenu->addSeparator();
@@ -248,10 +256,6 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::start() {
 	isConnected = false;
 	msa::getInstance().currentScan.steps = new QHash<quint32, msa::scanStep>();
-	configurator = new hardwareConfigWidget();
-	configurator->loadSavedSettings();
-	configurator->loadSettingsToGui();
-	configurator->show();
 	hardwareConfigWidget::appSettings_t appSettings = configurator->getAppSettings();
 	startServer(appSettings);
 

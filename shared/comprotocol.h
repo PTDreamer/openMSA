@@ -1,7 +1,7 @@
 /**
  ******************************************************************************
  *
- * @file       main.cpp
+ * @file       comprotocol.h
  * @author     Jose Barros (AKA PT_Dreamer) josemanuelbarros@gmail.com 2019
  * @brief      comprotocol.h file
  * @see        The GNU Public License (GPL) Version 3

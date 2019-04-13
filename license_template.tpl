@@ -1,7 +1,7 @@
 /**
  ******************************************************************************
  *
- * @file       main.cpp
+ * @file       %FILENAME%
  * @author     Jose Barros (AKA PT_Dreamer) josemanuelbarros@gmail.com %YEAR%
  * @brief      %FILENAME% file
  * @see        The GNU Public License (GPL) Version 3

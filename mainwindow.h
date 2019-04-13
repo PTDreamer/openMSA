@@ -94,6 +94,7 @@ private:
 
 	QAction *minimizeAction;
 	QAction *showLogAction;
+	QAction *showConfigAction;
 	QAction *showCalibrationAction;
 	QAction *maximizeAction;
 	QAction *restoreAction;
