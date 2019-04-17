@@ -340,7 +340,7 @@ void MainWindow::newConnection()
 	cfg_msg = config.gui;
 	cfg_msg.scanType = ComProtocol::scanType_t(config.scanType);
 	QMutexLocker locker(&messageSend);
-	server->sendMessage(ComProtocol::SCAN_CONFIG, ComProtocol::MESSAGE_SEND, &cfg_msg);
+	server->sendMessage(ComProtocol::SCAN_CONFIG, ComProtocol::MESSAGE_SEND_REQUEST_ACK, &cfg_msg);
 }
 
 
@@ -350,7 +350,6 @@ void MainWindow::onMessageReceivedServer(ComProtocol::messageType type, QByteArr
 	ComProtocol::msg_scan_config m_config;
 	ComProtocol::messageCommandType command;
 	quint32 msgNumber = 0;
-	qDebug() << "onMessageReceived";
 	switch (type) {
 		case ComProtocol::SCAN_CONFIG:
 			server->unpackMessage(data, type, command, msgNumber, &m_config);
@@ -363,9 +362,9 @@ void MainWindow::onMessageReceivedServer(ComProtocol::messageType type, QByteArr
 	msa::getInstance().setScanConfiguration(config);
 	bool ok;
 	if(m_config.isStepInSteps)// TODO HANDLE m_config.stepModeAuto
-		ok = msa::getInstance().initScan(false,  m_config.start, m_config.stop, m_config.steps_number, m_config.band);
+		ok = msa::getInstance().initScan(m_config.isInvertedScan,  m_config.start, m_config.stop, m_config.steps_number, m_config.band);
 	else {
-		ok = msa::getInstance().initScan(false,  m_config.start, m_config.stop, m_config.step_freq, m_config.band);
+		ok = msa::getInstance().initScan(m_config.isInvertedScan,  m_config.start, m_config.stop, m_config.step_freq, m_config.band);
 	}
 	msa::getInstance().currentInterface->autoScan();
 	if(ok)
