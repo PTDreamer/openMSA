@@ -39,6 +39,7 @@ ComProtocol::ComProtocol(QObject *parent, int debugLevel) : QObject(parent),
 	messageSize.insert(MAG_DAC, sizeof(msg_mag_dac));
 	messageSize.insert(SCAN_CONFIG, sizeof(msg_scan_config));
 	messageSize.insert(ERROR_INFO, sizeof(msg_error_info));
+	messageSize.insert(FINAL_FILTER, sizeof(msg_final_filter));
 	QList<unsigned long> sizes = messageSize.values();
 	double max = *std::max_element(sizes.begin(), sizes.end());
 	startOfData = 3 + sizeof(quint32);
@@ -46,6 +47,7 @@ ComProtocol::ComProtocol(QObject *parent, int debugLevel) : QObject(parent),
 	messageSendBuffer[0] = SYNC_BYTE;
 
 	connect(&clientReconnectTimer, SIGNAL(timeout()), this, SLOT(connectToServer()));
+	connect(this, &ComProtocol::ackedReceived, this, &ComProtocol::handleAck);
 }
 
 bool ComProtocol::startServer()
@@ -101,10 +103,39 @@ bool ComProtocol::connectToServer()
 	return connected;
 }
 
+void ComProtocol::handleAck(ComProtocol::messageType type, QByteArray data)
+{
+	if (debugLevel > 3)
+		qDebug() << "handleAck";
+	quint32 number = 0;
+	memcpy(&number, (data.constData() + startOfData), sizeof(quint32));
+	if(messagesBackup.contains(number)) {
+		messageBackup b = messagesBackup.value(number);
+		delete b.timer;
+		messagesBackup.remove(number);
+	}
+	else {
+		emit errorOcorred("Error", "Acked received for unknown message");
+	}
+}
+
 void ComProtocol::sendMessage(messageType type, messageCommandType command, void *data)
 {
 	bytesWaitingToBeSentLock.lock();
-	quint16 size = prepareMessage(type, command, data);
+	quint32 msgNumber;
+	quint16 size = prepareMessage(type, command, data, msgNumber);
+	if(command == messageCommandType::MESSAGE_SEND_REQUEST_ACK) {
+		messageBackup b;
+		b.data = messageSendBuffer;
+		b.size = size;
+		b.timer = new QTimer;
+		b.retries = 3;
+		messagesBackup.insert(msgNumber, b);
+		b.timer->setInterval(SEND_TIMEOUT);
+		b.timer->setSingleShot(true);
+		connect(b.timer, &QTimer::timeout, this, &ComProtocol::retrySendMessage);
+		b.timer->start();
+	}
 	if (socket && socket->state() == QTcpSocket::ConnectedState) {
 		quint16 msgSize = 0;
 		if (messageSize.contains(type))
@@ -145,14 +176,18 @@ bool ComProtocol::isConnected()
 		return false;
 }
 
-quint16 ComProtocol::prepareMessage(messageType type, messageCommandType command, void *data)
+quint16 ComProtocol::prepareMessage(messageType type, messageCommandType command, void *data, quint32 &messageNumber)
 {
 	messageSendBuffer[1] = type;
 	messageSendBuffer[2] = command;
     quint16 msgSize = 0;
-	if (messageSize.contains(type))
+	if(command == messageCommandType::ACK) {
+		msgSize = sizeof (quint32);
+	}
+	else if (messageSize.contains(type))
         msgSize = quint16(messageSize.value(type));
 	memcpy((messageSendBuffer.data() + 3), &msgNumber, sizeof(quint32));
+	messageNumber = msgNumber;
 	++msgNumber;
 	if (msgSize)
         memcpy((messageSendBuffer.data() + startOfData), data, msgSize);
@@ -222,18 +257,20 @@ void ComProtocol::bytesWritten(qint64 count)
 void ComProtocol::processReceivedMessage()
 {
 	typedef enum {
-		LOOKING_FOR_SYNC, LOOKING_FOR_MSG_TYPE, LOOKING_FOR_MSG_CHECKSUM
+		LOOKING_FOR_SYNC, LOOKING_FOR_MSG_TYPE, LOOKING_FOR_COMMAND, LOOKING_FOR_MSG_CHECKSUM
 	}status;
 	static QByteArray receiveBuffer;
 	static status currentStatus = status::LOOKING_FOR_SYNC;
 	static messageType currentType;
-
+	static messageCommandType currentCommandType;
 	receiveBuffer.append(socket->readAll());
 	bool repeat = true;
 	while (repeat) {
 		repeat = false;
 		switch (currentStatus) {
 		case status::LOOKING_FOR_SYNC:
+			if (debugLevel > 3)
+				qDebug() << "looking for synk";
 			if (receiveBuffer.contains(SYNC_BYTE)) {
 				receiveBuffer
 					= receiveBuffer.right(receiveBuffer.length()
@@ -243,11 +280,13 @@ void ComProtocol::processReceivedMessage()
 			}
 			break;
 		case status::LOOKING_FOR_MSG_TYPE:
+			if (debugLevel > 3)
+				qDebug() << "looking for msg type";
 			if (receiveBuffer.length() > 2) {
                 currentType = messageType(receiveBuffer.at(1));
 				if (messageSize.contains(currentType)) {
 					repeat = true;
-					currentStatus = LOOKING_FOR_MSG_CHECKSUM;
+					currentStatus = LOOKING_FOR_COMMAND;
 				} else {
 					repeat = true;
 					currentStatus = LOOKING_FOR_SYNC;
@@ -255,27 +294,61 @@ void ComProtocol::processReceivedMessage()
 				}
 			}
 			break;
+		case status::LOOKING_FOR_COMMAND:
+			if (debugLevel > 3)
+				qDebug() << "looking for command";
+			if(receiveBuffer.length() > 3) {
+				currentCommandType = messageCommandType(receiveBuffer.at(2));
+				currentStatus = LOOKING_FOR_MSG_CHECKSUM;
+				repeat = true;
+			}
+			break;
 		case status::LOOKING_FOR_MSG_CHECKSUM:
-			if (receiveBuffer.length()
-				>= int(startOfData + messageSize.value(currentType) + sizeof(quint16))) {
+			quint32 msgSize = 0;
+			if(currentCommandType == messageCommandType::ACK) {
+				msgSize = sizeof (quint32);
+				if (debugLevel > 3)
+					qDebug() << "looking for checksum" << " is ack so size= << msgSize";
+			}
+			else {
+				msgSize = quint32(messageSize.value(currentType));
+				if (debugLevel > 3)
+					qDebug() << "looking for checksum" << " is NOT ack so size=" << msgSize;
+			}
+			if (receiveBuffer.length() >= int(startOfData + msgSize + sizeof(quint16))) {
 				quint16 receivedChecksum;
 				memcpy(&receivedChecksum,
-					   (receiveBuffer.constData() + startOfData + messageSize.value(currentType)),
+					   (receiveBuffer.constData() + startOfData + msgSize),
 					   sizeof(quint16));
 				quint16 calculateChecksum
 					= qChecksum(receiveBuffer.constData() + 1,
-								uint(messageSize.value(currentType) + 2 + sizeof(quint32)));
+								uint(msgSize) + 2 + sizeof(quint32));
 				if (receivedChecksum != calculateChecksum) {
-					qDebug() << "Wrong checksum received";
+					if (debugLevel > 0)
+						qDebug() << "Wrong checksum received";
 					receiveBuffer[0] = 0;
 					repeat = true;
 					currentStatus = LOOKING_FOR_SYNC;
 				} else {
+					if (debugLevel > 3)
+						qDebug() << "Correct checksum received";
 					QByteArray array;
-					array
-						= receiveBuffer.left(int(startOfData + messageSize.value(currentType)
-												 + sizeof(quint16)));
-					emit packetReceived(currentType, array);
+					array = receiveBuffer.left(int(startOfData + msgSize + sizeof(quint16)));
+					if(receiveBuffer.at(2) == messageCommandType::ACK) {
+						emit ackedReceived(currentType, array);
+						if (debugLevel > 3)
+							qDebug() << "receivedAck";
+					}
+					else if(receiveBuffer.at(2) == messageCommandType::MESSAGE_SEND_REQUEST_ACK) {
+						quint32 number;
+						memcpy(&number, array.constData() + 3, sizeof(quint32));
+						if (debugLevel > 0)
+							qDebug() << "Received ack request for message " << number;
+						sendMessage(currentType, messageCommandType::ACK, &number);
+						emit packetReceived(currentType, array);
+					}
+					else
+						emit packetReceived(currentType, array);
 					receiveBuffer = receiveBuffer.right(receiveBuffer.length() - array.length());
 					currentStatus = LOOKING_FOR_SYNC;
 					repeat = true;
@@ -290,4 +363,34 @@ void ComProtocol::clientDisconnected()
 {
 	if (autoClientReconnection)
 		clientReconnectTimer.start(1000);
+}
+
+void ComProtocol::retrySendMessage()
+{
+	if (debugLevel > 3)
+		qDebug() << "retrySendMessage";
+	bool remove = false;
+	quint32 number;
+	QTimer *s = dynamic_cast<QTimer*>(sender());
+	foreach (quint32 n, messagesBackup.keys()) {
+		messagesBackup[n];
+		if( messagesBackup[n].timer == s) {
+			 messagesBackup[n].retries =  messagesBackup[n].retries - 1;
+			qDebug() <<  messagesBackup[n].retries << messagesBackup.size();
+			if( messagesBackup[n].retries == 0) {
+				emit errorOcorred("Could not send message", "Maximum retries exceeded");
+				delete  messagesBackup[n].timer;
+				number = n;
+				remove = true;
+				break;
+			}
+			 messagesBackup[n].timer->start();
+			bytesWaitingToBeSentLock.lock();
+			socket->write( messagesBackup[n].data.constData(),  messagesBackup[n].size);
+			bytesWaitingToBeSentLock.unlock();
+			break;
+		}
+	}
+	if(remove)
+		messagesBackup.remove(number);
 }

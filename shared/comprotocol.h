@@ -34,12 +34,12 @@
 #include <QTimer>
 
 #define SYNC_BYTE 0x3D
-
+#define SEND_TIMEOUT 3000
 class ComProtocol : public QObject
 {
 	Q_OBJECT
 public:
-	typedef enum {DUAL_DAC, MAG_DAC, PH_DAC, DEBUG_VALUES, DEBUG_SETUP, SCAN_SETUP, SCAN_CONFIG, ERROR_INFO} messageType;
+	typedef enum {DUAL_DAC, MAG_DAC, PH_DAC, DEBUG_VALUES, DEBUG_SETUP, SCAN_SETUP, SCAN_CONFIG, ERROR_INFO, FINAL_FILTER} messageType;
 	typedef enum {MESSAGE_REQUEST, MESSAGE_SEND, MESSAGE_SEND_REQUEST_ACK, ACK} messageCommandType;
 	typedef enum {SA, SA_TG, SA_SG,  VNA_Trans, VNA_Rec, SNA} scanType_t;
 	typedef struct {
@@ -51,6 +51,11 @@ public:
 		uint32_t step;
 		uint32_t phase;
 	} msg_ph_dac;
+	typedef struct {
+		char* name[10];
+		double center_frequency;
+		double bandwidth;
+	} msg_final_filter;
 	typedef struct {
 		uint32_t step;
 		uint32_t mag;
@@ -83,13 +88,20 @@ public:
 		bool isCritical;
 	} msg_error_info;
 
+	typedef struct {
+		QByteArray data;
+		quint16 size;
+		QTimer *timer;
+		uint retries;
+	} messageBackup;
+	QHash<quint32, messageBackup> messagesBackup;
 	QHash<messageType, unsigned long> messageSize;
 	QByteArray messageSendBuffer;
 	explicit ComProtocol(QObject *parent, int debugLevel);
 
 	bool startServer();
 	bool startServer(quint16 port);
-	quint16 prepareMessage(messageType type, messageCommandType command, void *data);
+	quint16 prepareMessage(messageType type, messageCommandType command, void *data, quint32 &msgNumber);
 	bool unpackMessage(QByteArray rmessage, messageType &type, messageCommandType &command, quint32 &msgNumber, void *data);
 	quint16 getServerPort() const;
 	void setServerPort(const quint16 &value);
@@ -103,8 +115,10 @@ public:
     bool isConnected();
 signals:
 	void packetReceived(messageType, QByteArray);
+	void ackedReceived(messageType, QByteArray);
 	void serverConnected();
     void clientConnected();
+	void errorOcorred(QString, QString);
 private:
 	quint8 startOfData;
 	QTcpServer *server;
@@ -119,11 +133,13 @@ private:
 	int debugLevel;
 public slots:
 	bool connectToServer();
+	void handleAck(messageType, QByteArray);
 private slots:
 	void newConnection();
 	void bytesWritten(qint64);
 	void processReceivedMessage();
 	void clientDisconnected();
+	void retrySendMessage();
 };
 
 #endif // COMPROTOCOL_H
