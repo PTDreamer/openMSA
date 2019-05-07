@@ -64,6 +64,8 @@ public:
 	}magPhaseCalData;
 	bool saveCalDataToFile(freqCalData data, QString file);
 	bool saveCalDataToFile(QList<magPhaseCalData> data, QString file);
+	bool createDefaultFreqCalData(QString file = "");
+	bool createDefaultMagPhaseCalData(QString file = "");
 	freqCalData loadFreqCalDataFromFile(QString file, bool &success, QString &errorText);
 	QList<magPhaseCalData> loadMagPhaseCalDataFromFile(QString file, bool &success, QString &errorText);
 	freqCalData importFreqCalFromOriginalSW(QString file, bool &success);

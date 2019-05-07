@@ -41,12 +41,11 @@ MainWindow::MainWindow():hwInterface(nullptr)
 	iconLabel->setMinimumWidth(durationLabel->sizeHint().width());
 
 	configurator = new hardwareConfigWidget();
-	configurator->loadSavedSettings();
-	configurator->loadSettingsToGui();
-
 	createActions();
 	createTrayIcon();
-
+	connect(configurator, &hardwareConfigWidget::triggerMessage, this, &MainWindow::triggerMessage);
+	connect(configurator, &hardwareConfigWidget::requiresReinit, this, &MainWindow::scanReinit);
+	connect(configurator, &hardwareConfigWidget::requiresHwReinit, this, &MainWindow::hwReinit);
 	//connect(showMessageButton, &QAbstractButton::clicked, this, &MainWindow::showMessage);
 	connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::messageClicked);
 	connect(trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::iconActivated);
@@ -65,11 +64,14 @@ MainWindow::MainWindow():hwInterface(nullptr)
 	resize(400, 300);
 
 	setVisible(false);
+
+	configurator->loadSavedSettings();
+	configurator->loadSettingsToGui();
+
 	start();
 }
-//! [0]
 
-//! [1]
+
 void MainWindow::setVisible(bool visible)
 {
 	minimizeAction->setEnabled(visible);
@@ -255,27 +257,14 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
 void MainWindow::start() {
 	isConnected = false;
+	msa::getInstance().setMainWindow(this);
 	msa::getInstance().currentScan.steps = new QHash<quint32, msa::scanStep>();
 	hardwareConfigWidget::appSettings_t appSettings = configurator->getAppSettings();
-	startServer(appSettings);
-
+	if(!server)
+		startServer(appSettings);
 	loadHardware(appSettings);
-
 	msa::scanConfig config = configurator->getConfig();
-
-	loadCalibrationFiles(&config);
-
-	if(config.pathCalibrationList.length() == 1)
-		config.currentFinalFilterName = config.pathCalibrationList.at(0).pathName;
-
 	msa::getInstance().setScanConfiguration(config);
-
-	bool found = msa::getInstance().setPathCalibrationAndExtrapolate(config.currentFinalFilterName);
-	if(found)
-		emit triggerMessage(INFO, QString("%1 path chosen").arg(config.currentFinalFilterName), QString("Center:%1MHz Bandwidth:%2MHz").arg(msa::getInstance().getScanConfiguration().pathCalibration.centerFreq_MHZ).arg(msa::getInstance().getScanConfiguration().pathCalibration.bandwidth_MHZ), 7);
-	else
-		emit triggerMessage(INFO, "There was a problem setting the path in use", "the path was not found", 7);
-
 	connect(hwInterface,SIGNAL(connected()), this,SLOT(on_Connect()), Qt::UniqueConnection);
 	connect(hwInterface,SIGNAL(disconnected()), this,SLOT(on_Disconnect()), Qt::UniqueConnection);
 	if(hwInterface->getIsConnected())
@@ -319,9 +308,7 @@ void MainWindow::on_Connect()
 	msa::scanConfig cfg;
 	cfg = msa::getInstance().getScanConfiguration();
 	msa::getInstance().hardwareInit(devices, hwInterface);
-	//msa::getInstance().initScan(false, 95, 105, (quint32)2000, -1);
 	msa::getInstance().initScan(cfg.gui.isInvertedScan, cfg.gui.start, cfg.gui.stop, cfg.gui.steps_number, cfg.gui.band);
-//	msa::getInstance().initScan(cfg.gui.isInvertedScan, cfg.gui.start, cfg.gui.stop, cfg.gui.steps_number, cfg.gui.band);
 
 	hwInterface->autoScan();
 	isConnected = true;
@@ -341,8 +328,36 @@ void MainWindow::newConnection()
 	cfg_msg.scanType = ComProtocol::scanType_t(config.scanType);
 	QMutexLocker locker(&messageSend);
 	server->sendMessage(ComProtocol::SCAN_CONFIG, ComProtocol::MESSAGE_SEND_REQUEST_ACK, &cfg_msg);
+	ComProtocol::msg_final_filter fil_msg;
+	foreach (calParser::magPhaseCalData d, config.pathCalibrationList) {
+		strcpy(fil_msg.name, d.pathName.toLatin1().data());
+		server->sendMessage(ComProtocol::FINAL_FILTER, ComProtocol::MESSAGE_SEND_REQUEST_ACK, &fil_msg);
+	}
 }
 
+void MainWindow::scanReinit()//used for special tests
+{
+	ComProtocol::msg_scan_config m_config;
+	bool isScanning = msa::getInstance().currentInterface->isScanning();
+	msa::getInstance().currentInterface->cancelScan();
+	msa::scanConfig config = configurator->getConfig();
+	msa::getInstance().setScanConfiguration(config);
+	config = msa::getInstance().getScanConfiguration();
+	m_config = config.gui;
+	bool ok;
+	if(m_config.isStepInSteps)
+		ok = msa::getInstance().initScan(m_config.isInvertedScan,  m_config.start, m_config.stop, m_config.steps_number, m_config.band);
+	else {
+		ok = msa::getInstance().initScan(m_config.isInvertedScan,  m_config.start, m_config.stop, m_config.step_freq, m_config.band);
+	}
+	if(isScanning)
+		msa::getInstance().currentInterface->autoScan();
+}
+
+void MainWindow::hwReinit()
+{
+	start();
+}
 
 void MainWindow::onMessageReceivedServer(ComProtocol::messageType type, QByteArray data)
 {
@@ -392,37 +407,6 @@ void MainWindow::showCalibration()
 	calibrationViewer *v = new calibrationViewer();
 	v->show();
 #endif
-}
-
-void MainWindow::loadCalibrationFiles(msa::scanConfig *config)
-{
-	bool s;
-	QString err;
-	config->frequencyCalibration = m_calParser.loadFreqCalDataFromFile( m_calParser.getConfigLocation() + QDir::separator() + STANDARD_FREQ_CAL_FILENAME, s, err);
-	if(!s) {
-		emit triggerMessage(WARNING, "Could not load Freq cal file", err, 5);
-		config->frequencyCalibration.freqToPower.insert(0, 0);
-		config->frequencyCalibration.freqToPower.insert(1000, 0);
-	}
-
-	config->pathCalibrationList = m_calParser.loadMagPhaseCalDataFromFile(m_calParser.getConfigLocation() + QDir::separator() + STANDARD_PATHS_CAL_FILENAME, s, err);
-	if(!s)
-		emit triggerMessage(WARNING, "Could not load Mag Phase cal file", err, 5);
-	if(config->pathCalibrationList.length() && s)
-		config->pathCalibration = config->pathCalibrationList.first();
-	else {
-		emit triggerMessage(WARNING, "Mag Phase Cal", "Using dummy values", 5);
-		config->pathCalibration.pathName = "DUMMY";
-		config->pathCalibration.controlPin = -1;
-		config->pathCalibration.bandwidth_MHZ = 0.00015;
-		config->pathCalibration.centerFreq_MHZ = 10.7;
-		calParser::magCalFactors f;
-		f.dbm_val = -120;
-		f.phase_val = 0;
-		config->pathCalibration.adcToMagCalFactors.insert(0, f);
-		f.dbm_val = 0;
-		config->pathCalibration.adcToMagCalFactors.insert(32767, f);
-	}
 }
 
 void MainWindow::startServer(hardwareConfigWidget::appSettings_t &appSettings)

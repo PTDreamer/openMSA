@@ -67,6 +67,8 @@ private:
 	msa::scanConfig config;
 	appSettings_t appSettings;
 	bool saveSettingsOnExit;
+	void loadCalibrationFiles();
+	calParser m_calParser;
 public slots:
 	void loadSavedSettings(bool loadDefaults = false);
 	void saveSettings();
@@ -81,6 +83,20 @@ private slots:
 	void on_pb_save_and_exit_clicked();
 	void on_pb_apply_clicked();
 	void on_pb_cancel_clicked();
+	void on_pb_CommandDDS1_clicked();
+
+	void on_pbResetDDS1_clicked();
+
+	void on_pb_CommandDDS3_clicked();
+
+	void on_pbResetDDS3_clicked();
+
+	void on_resolution_filters_table_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn);
+
+signals:
+	void triggerMessage(int type, QString title, QString text, int duration);
+	void requiresReinit();
+	void requiresHwReinit();
 };
 
 #endif // HARDWARECONFIGWIDGET_H

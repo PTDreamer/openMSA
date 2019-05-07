@@ -36,6 +36,8 @@ calParser::calParser(QObject *parent) : QObject(parent)
 
 bool calParser::saveCalDataToFile(freqCalData data, QString file)
 {
+	if(file.isEmpty())
+		file = getConfigLocation() + QDir::separator() + STANDARD_FREQ_CAL_FILENAME;
 	QFileInfo inf(file);
 	QDir dir(inf.absolutePath());
 	if (!dir.exists())
@@ -66,6 +68,8 @@ bool calParser::saveCalDataToFile(freqCalData data, QString file)
 
 bool calParser::saveCalDataToFile(QList<magPhaseCalData> data, QString file)
 {
+	if(file.isEmpty())
+		file = getConfigLocation() + QDir::separator() + STANDARD_PATHS_CAL_FILENAME;
 	QFileInfo inf(file);
 	QDir dir(inf.absolutePath());
 	if (!dir.exists())
@@ -105,8 +109,47 @@ bool calParser::saveCalDataToFile(QList<magPhaseCalData> data, QString file)
 	return true;
 }
 
+bool calParser::createDefaultFreqCalData(QString file)
+{
+	if(file.isEmpty())
+		getConfigLocation() + QDir::separator() + STANDARD_FREQ_CAL_FILENAME;
+	freqCalData d;
+	d.calDate = "NEVER";
+	d.calPower = 0.0;
+	d.freqToPower.insert(0, 0);
+	d.freqToPower.insert(1000, 0);
+	return saveCalDataToFile(d, file);
+}
+
+bool calParser::createDefaultMagPhaseCalData(QString file)
+{
+	if(file.isEmpty())
+		getConfigLocation() + QDir::separator() + STANDARD_PATHS_CAL_FILENAME;
+	magPhaseCalData d;
+	d.calDate = "NEVER";
+	d.pathName = "DEFAULT";
+	d.controlPin = -1;
+	d.calFrequency = 0;
+	d.bandwidth_MHZ = 0.015;
+	d.centerFreq_MHZ = 10.7;
+	magCalFactors f;
+	f.dbm_val = -120.0;
+	f.phase_val = 0.0;
+	d.adcToMagCalFactors.insert(0, f);
+	f.dbm_val = 0.0;
+	f.phase_val = 0.0;
+	d.adcToMagCalFactors.insert(32767, f);
+	QList<magPhaseCalData> list;
+	list.append(d);
+	return saveCalDataToFile(list, file);
+}
+
+
+
 calParser::freqCalData calParser::loadFreqCalDataFromFile(QString file, bool &success, QString &errorText)
 {
+	if(file.isEmpty())
+		file = getConfigLocation() + QDir::separator() + STANDARD_FREQ_CAL_FILENAME;
 	success = true;
 	calParser::freqCalData ret;
 	QFile f(file);
@@ -137,6 +180,8 @@ calParser::freqCalData calParser::loadFreqCalDataFromFile(QString file, bool &su
 
 QList<calParser::magPhaseCalData> calParser::loadMagPhaseCalDataFromFile(QString file, bool &success, QString &errorText)
 {
+	if(file.isEmpty())
+		file = getConfigLocation() + QDir::separator() + STANDARD_PATHS_CAL_FILENAME;
 	success = true;
 	QList<calParser::magPhaseCalData> ret;
 	QFile f(file);

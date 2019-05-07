@@ -143,7 +143,17 @@ bool lmx2326::init()
 	setFieldRegister(L_POWER_DOWN_MODE, 0);
 	setFieldRegister(L_COUNTER_RESET, 0);
 	setFieldRegister(L_POWER_DOWN, 0);
-	setFieldRegister(L_FO_LD, int(FoLD_field::TRI_STATE));
+	switch (parser->getDevice()) {
+	case msa::PLL1:
+		setFieldRegister(L_FO_LD, msa::getInstance().getScanConfiguration().PLL1pin14Output);
+		break;
+	case msa::PLL3:
+		setFieldRegister(L_FO_LD, msa::getInstance().getScanConfiguration().PLL3pin14Output);
+		break;
+	default:
+		setFieldRegister(L_FO_LD, quint32(FoLD_field::TRI_STATE));
+		break;
+	}
 	if(parser->getPLLinverted((msa::getInstance().currentScan.configuration)))
 		setFieldRegister(L_PH_DET_POLARITY, int(phase_detector::INVERTED));
 	else
@@ -233,9 +243,6 @@ double lmx2326::getVcoFrequency(double external_clock_frequency)
 {
 	double ret;
 	ret = ((double)32 * (double)getFieldRegister(N_BCOUNTER_DIVIDER)+ (double)getFieldRegister(N_ACOUNTER_DIVIDER)) * (external_clock_frequency / (double)getFieldRegister(R_DIVIDER));
-	//qDebug() << ((32 * (double)getFieldRegister(N_BCOUNTER_DIVIDER))+ (double)getFieldRegister(N_ACOUNTER_DIVIDER));
-	//qDebug() << (external_clock_frequency / (double)getFieldRegister(R_DIVIDER));
-
 	return ret;
 }
 

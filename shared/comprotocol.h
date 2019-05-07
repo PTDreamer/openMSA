@@ -52,7 +52,7 @@ public:
 		uint32_t phase;
 	} msg_ph_dac;
 	typedef struct {
-		char* name[10];
+		char name[10];
 		double center_frequency;
 		double bandwidth;
 	} msg_final_filter;

@@ -1,3 +1,6 @@
+path calibration wizard on hardwareconfigwidget.cpp
+path calibration and final filter saving
+
 filter check
 if freq<5 or freq>15 or bw<.01 or bw>5000 then notice "Invalid Values" : exit sub
 

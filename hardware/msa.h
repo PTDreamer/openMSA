@@ -30,6 +30,9 @@
 #include "../shared/comprotocol.h"
 #include "calparser.h"
 
+typedef enum {INFO, WARNING, ERROR} message_type;
+
+class MainWindow;
 class hardwareDevice;
 class interface;
 class msa
@@ -47,6 +50,7 @@ private:
 	msa() {}
 	bool isInverted;
 	int resolution_filter_bank;
+	MainWindow *mw;
 public:
 	msa(msa const&)               = delete;
 	void operator=(msa const&)  = delete;
@@ -66,16 +70,20 @@ public:
             int address;
             double value;
         } videoFilter_t;
-
-        typedef  struct {
-            int address;
-            double centerFrequency;
-            double bandwidth;
-        } resolutionFilter_t;
+	typedef  struct {
+		bool isForced;
+		double outputFreq;
+		double oscFreq;
+	} forceDDS;
+//        typedef  struct {
+//            int address;
+//            double centerFrequency;
+//            double bandwidth;
+//        } resolutionFilter_t;
 
 	typedef struct {
                 QHash<QString, videoFilter_t> videoFilters;
-                QHash<QString, resolutionFilter_t> resolutionFilters;
+				//QHash<QString, resolutionFilter_t> resolutionFilters;
                 calParser::freqCalData frequencyCalibration;
 		QList<calParser::magPhaseCalData> pathCalibrationList;
 		calParser::magPhaseCalData pathCalibration;
@@ -92,12 +100,17 @@ public:
 		bool   PLL1phasepolarity_inverted;
 		bool   PLL2phasepolarity_inverted;
 		bool   PLL3phasepolarity_inverted;
+		unsigned int PLL1pin14Output;
+		unsigned int PLL3pin14Output;
 		double masterOscilatorFrequency;
 		double PDMInversion_degrees;
 		quint32 PDMMaxOut;
 		uint8_t adcAveraging;
 		ComProtocol::scanType_t scanType;
 		ComProtocol::msg_scan_config gui;
+		forceDDS forcedDDS1;
+		forceDDS forcedDDS3;
+                bool cavityTestRunning;
 	} scanConfig;
 	typedef struct {
 		scanConfig configuration;
@@ -110,7 +123,7 @@ public:
 	bool getIsInverted() const;
 	int getResolution_filter_bank() const;
 	void setResolution_filter_bank(int value);
-
+	void setMainWindow(MainWindow *window);
 	msa::scanConfig getScanConfiguration();
 	bool setPathCalibrationAndExtrapolate(QString pathName);
 	void extrapolateFrequenctCalibrationForCurrentScan();

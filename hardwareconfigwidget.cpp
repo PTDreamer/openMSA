@@ -27,6 +27,7 @@
 #include "ui_hardwareconfigwidget.h"
 #include "hardware/controllers/interface.h"
 #include "hardware/hardwaredevice.h"
+#include <QDir>
 
 hardwareConfigWidget::hardwareConfigWidget(QWidget *parent) :
 	QWidget(parent),
@@ -132,6 +133,8 @@ void hardwareConfigWidget::loadSavedSettings(bool loadDefaults)
 	config.PLL1phasepolarity_inverted = settings->value("msa/hardwareConfig/PLL1phasepolarity_inverted", true).toBool();
 	config.PLL2phasepolarity_inverted = settings->value("msa/hardwareConfig/PLL2phasepolarity_inverted", false).toBool();
 	config.PLL3phasepolarity_inverted = settings->value("msa/hardwareConfig/PLL3phasepolarity_inverted", true).toBool();
+	config.PLL1pin14Output = settings->value("msa/hardwareConfig/PLL1pin14Output", 0).toUInt();
+	config.PLL3pin14Output = settings->value("msa/hardwareConfig/PLL3pin14Output", 0).toUInt();
 	config.currentFinalFilterName = (settings->value("msa/hardwareConfig/finalFilterName", "DUMMY").toString());
 
 	config.scanType = ComProtocol::scanType_t(settings->value("app/lastValues/scanType", ComProtocol::SA_SG).toInt());
@@ -165,19 +168,23 @@ void hardwareConfigWidget::loadSavedSettings(bool loadDefaults)
 	config.gui.span_freq = (config.gui.stop - config.gui.start);
 	config.gui.TGoffset_multi = settings->value("app/lastValues/TGoffset_multi", 1000000).toUInt();
 
-	int size = settings->beginReadArray("msa/hardwareConfig/resolutionFilters");
-	for (int i = 0; i < size; ++i) {
-		  settings->setArrayIndex(i);
-		  msa::resolutionFilter_t f;
-		  f.centerFrequency = settings->value("centerFrequency").toDouble();
-		  f.bandwidth = settings->value("bandwidth").toDouble();
-		  f.address = settings->value("address").toInt();
+	config.forcedDDS1.isForced = false;
+	config.forcedDDS3.isForced = false;
 
-		  config.resolutionFilters.insert(settings->value("name").toString(), f);
-	  }
-	settings->endArray();
+	config.cavityTestRunning = false;
+//	int size = settings->beginReadArray("msa/hardwareConfig/resolutionFilters");
+//	for (int i = 0; i < size; ++i) {
+//		  settings->setArrayIndex(i);
+//		  msa::resolutionFilter_t f;
+//		  f.centerFrequency = settings->value("centerFrequency").toDouble();
+//		  f.bandwidth = settings->value("bandwidth").toDouble();
+//		  f.address = settings->value("address").toInt();
 
-	size = settings->beginReadArray("msa/hardwareConfig/videoFilters");
+//		  config.resolutionFilters.insert(settings->value("name").toString(), f);
+//	  }
+//	settings->endArray();
+
+	int size = settings->beginReadArray("msa/hardwareConfig/videoFilters");
 	for (int i = 0; i < size; ++i) {
 		  settings->setArrayIndex(i);
 		  msa::videoFilter_t v;
@@ -187,6 +194,7 @@ void hardwareConfigWidget::loadSavedSettings(bool loadDefaults)
 		  config.videoFilters.insert(settings->value("name").toString(), v);
 	  }
 	settings->endArray();
+	loadCalibrationFiles();
 }
 
 void hardwareConfigWidget::saveSettings()
@@ -222,23 +230,25 @@ void hardwareConfigWidget::saveSettings()
 	settings->setValue("msa/hardwareConfig/PLL1phasepolarity_inverted", config.PLL1phasepolarity_inverted);
 	settings->setValue("msa/hardwareConfig/PLL2phasepolarity_inverted", config.PLL2phasepolarity_inverted);
 	settings->setValue("msa/hardwareConfig/PLL3phasepolarity_inverted", config.PLL3phasepolarity_inverted);
+	settings->setValue("msa/hardwareConfig/PLL1pin14Output", config.PLL1pin14Output);
+	settings->setValue("msa/hardwareConfig/PLL3pin14Output", config.PLL3pin14Output);
 	settings->setValue("msa/hardwareConfig/finalFilterName", config.currentFinalFilterName);
 
 
 
-	settings->beginWriteArray("msa/hardwareConfig/resolutionFilters");
-	int x = 0;
-	foreach(QString name, config.resolutionFilters.keys()) {
-		  settings->setArrayIndex(x);
-		  ++x;
-		  settings->setValue("centerFrequency", config.resolutionFilters.value(name).centerFrequency);
-		  settings->setValue("bandwidth", config.resolutionFilters.value(name).bandwidth);
-		  settings->setValue("address", config.resolutionFilters.value(name).address);
-		  settings->setValue("name", name);
-	}
-	  settings->endArray();
+//	settings->beginWriteArray("msa/hardwareConfig/resolutionFilters");
+//	int x = 0;
+//	foreach(QString name, config.resolutionFilters.keys()) {
+//		  settings->setArrayIndex(x);
+//		  ++x;
+//		  settings->setValue("centerFrequency", config.resolutionFilters.value(name).centerFrequency);
+//		  settings->setValue("bandwidth", config.resolutionFilters.value(name).bandwidth);
+//		  settings->setValue("address", config.resolutionFilters.value(name).address);
+//		  settings->setValue("name", name);
+//	}
+//	  settings->endArray();
 	  settings->beginWriteArray("msa/hardwareConfig/videoFilters");
-	  x = 0;
+	  int x = 0;
 	  foreach(QString name, config.videoFilters.keys()) {
 			settings->setArrayIndex(x);
 			++x;
@@ -348,21 +358,73 @@ void hardwareConfigWidget::setSettingsFromGui()
 	config.PLL2phasepolarity_inverted = ui->pll2_inverted->isChecked();
 	config.PLL3phasepolarity_inverted = ui->pll3_inverted->isChecked();
 
+	switch (uint(ui->cbPLL1pin14->currentIndex())) {
+	case 0:
+		config.PLL1pin14Output = 0;
+		break;
+	case 1:
+		config.PLL1pin14Output = 4;
+		break;
+	case 2:
+		config.PLL1pin14Output = 2;
+		break;
+	case 3:
+		config.PLL1pin14Output = 6;
+		break;
+	case 4:
+		config.PLL1pin14Output = 1;
+		break;
+	case 5:
+		config.PLL1pin14Output = 5;
+		break;
+	case 6:
+		config.PLL1pin14Output = 3;
+		break;
+	case 7:
+		config.PLL1pin14Output = 7;
+		break;
+	}
+	switch (uint(ui->cbPLL3pin14->currentIndex())) {
+	case 0:
+		config.PLL3pin14Output = 0;
+		break;
+	case 1:
+		config.PLL3pin14Output = 4;
+		break;
+	case 2:
+		config.PLL3pin14Output = 2;
+		break;
+	case 3:
+		config.PLL3pin14Output = 6;
+		break;
+	case 4:
+		config.PLL3pin14Output = 1;
+		break;
+	case 5:
+		config.PLL3pin14Output = 5;
+		break;
+	case 6:
+		config.PLL3pin14Output = 3;
+		break;
+	case 7:
+		config.PLL3pin14Output = 7;
+		break;
+	}
 	config.PDMInversion_degrees = ui->pdm_inversion_degrees->value();
 	config.PDMMaxOut = quint32(ui->pdm_max_out->value());
 
-	config.resolutionFilters.clear();
+	//config.resolutionFilters.clear();
 	config.videoFilters.clear();
+//TODO
+//	for(int x = 0; x < ui->resolution_filters_table->rowCount(); ++x) {
+//		msa::resolutionFilter_t r;
 
-	for(int x = 0; x < ui->resolution_filters_table->rowCount(); ++x) {
-		msa::resolutionFilter_t r;
-
-		QString name = ui->resolution_filters_table->item(x, 0)->text();
-		r.centerFrequency = ui->resolution_filters_table->item(x, 1)->text().toDouble();
-		r.bandwidth = ui->resolution_filters_table->item(x, 2)->text().toDouble();
-		r.address = ui->resolution_filters_table->item(x, 3)->text().toInt();
-		config.resolutionFilters.insert(name, r);
-	}
+//		QString name = ui->resolution_filters_table->item(x, 0)->text();
+//		r.centerFrequency = ui->resolution_filters_table->item(x, 1)->text().toDouble();
+//		r.bandwidth = ui->resolution_filters_table->item(x, 2)->text().toDouble();
+//		r.address = ui->resolution_filters_table->item(x, 3)->text().toInt();
+//		config.resolutionFilters.insert(name, r);
+//	}
 
 	for(int x = 0; x < ui->video_filters_table->rowCount(); ++x) {
 		msa::videoFilter_t v;
@@ -372,6 +434,7 @@ void hardwareConfigWidget::setSettingsFromGui()
 		v.address = ui->video_filters_table->item(x, 2)->text().toInt();
 		config.videoFilters.insert(name, v);
 	}
+	emit requiresHwReinit();
 }
 
 void hardwareConfigWidget::loadSettingsToGui()
@@ -483,16 +546,72 @@ void hardwareConfigWidget::loadSettingsToGui()
 	}
 
 
-	foreach(QString name, config.resolutionFilters.keys()) {
+	foreach(calParser::magPhaseCalData d, config.pathCalibrationList) {
 		ui->resolution_filters_table->insertRow(ui->resolution_filters_table->rowCount());
-		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 0,  new QTableWidgetItem(name));
-		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 1,  new QTableWidgetItem(QString::number(config.resolutionFilters.value(name).centerFrequency)));
-		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 2,  new QTableWidgetItem(QString::number((config.resolutionFilters.value(name).bandwidth))));
-		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 3,  new QTableWidgetItem(QString::number((config.resolutionFilters.value(name).address))));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 0,  new QTableWidgetItem(d.pathName));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 1,  new QTableWidgetItem(QString::number(d.centerFreq_MHZ)));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 2,  new QTableWidgetItem(QString::number(d.bandwidth_MHZ)));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 3,  new QTableWidgetItem(QString::number(d.controlPin)));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 4,  new QTableWidgetItem(QString::number(d.calFrequency)));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 5,  new QTableWidgetItem(d.calDate));
 	}
 
 	ui->resolution_filters_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 	ui->video_filters_table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
+	switch (config.PLL1pin14Output) {
+	case 0:
+		ui->cbPLL1pin14->setCurrentIndex(0);
+		break;
+	case 1:
+		ui->cbPLL1pin14->setCurrentIndex(4);
+		break;
+	case 2:
+		ui->cbPLL1pin14->setCurrentIndex(2);
+		break;
+	case 3:
+		ui->cbPLL1pin14->setCurrentIndex(6);
+		break;
+	case 4:
+		ui->cbPLL1pin14->setCurrentIndex(1);
+		break;
+	case 5:
+		ui->cbPLL1pin14->setCurrentIndex(5);
+		break;
+	case 6:
+		ui->cbPLL1pin14->setCurrentIndex(3);
+		break;
+	case 7:
+		ui->cbPLL1pin14->setCurrentIndex(7);
+		break;
+	}
+
+	switch (config.PLL3pin14Output) {
+	case 0:
+		ui->cbPLL3pin14->setCurrentIndex(0);
+		break;
+	case 1:
+		ui->cbPLL3pin14->setCurrentIndex(4);
+		break;
+	case 2:
+		ui->cbPLL3pin14->setCurrentIndex(2);
+		break;
+	case 3:
+		ui->cbPLL3pin14->setCurrentIndex(6);
+		break;
+	case 4:
+		ui->cbPLL3pin14->setCurrentIndex(1);
+		break;
+	case 5:
+		ui->cbPLL3pin14->setCurrentIndex(5);
+		break;
+	case 6:
+		ui->cbPLL3pin14->setCurrentIndex(3);
+		break;
+	case 7:
+		ui->cbPLL3pin14->setCurrentIndex(7);
+		break;
+	}
 }
 
 void hardwareConfigWidget::on_pb_add_video_filter_clicked()
@@ -537,4 +656,118 @@ void hardwareConfigWidget::on_pb_cancel_clicked()
 {
 	loadSettingsToGui();
 	close();
+}
+
+void hardwareConfigWidget::loadCalibrationFiles()
+{
+	bool s;
+	QString err;
+	config.frequencyCalibration = m_calParser.loadFreqCalDataFromFile( m_calParser.getConfigLocation() + QDir::separator() + STANDARD_FREQ_CAL_FILENAME, s, err);
+	if(!s) {
+		emit triggerMessage(WARNING, "Could not load Freq cal file, trying to create default", err, 5);
+		bool ss = m_calParser.createDefaultFreqCalData();
+		if(ss) {
+			emit triggerMessage(INFO, "Default freq cal created", "Proceding with loading it", 5);
+			config.frequencyCalibration = m_calParser.loadFreqCalDataFromFile("", s, err);
+			if(!s) {
+				emit triggerMessage(WARNING, "Failed to open recent created file", err, 5);
+				config.frequencyCalibration.freqToPower.insert(0, 0);
+				config.frequencyCalibration.freqToPower.insert(1000, 0);
+			}
+		} else {
+			emit triggerMessage(WARNING, "Could not create default file", "No idea what went wrong!", 5);
+			config.frequencyCalibration.freqToPower.insert(0, 0);
+			config.frequencyCalibration.freqToPower.insert(1000, 0);
+		}
+	}
+	bool useDummyMagCal = false;
+	config.pathCalibrationList = m_calParser.loadMagPhaseCalDataFromFile(m_calParser.getConfigLocation() + QDir::separator() + STANDARD_PATHS_CAL_FILENAME, s, err);
+	if(!s) {
+		emit triggerMessage(WARNING, "Could not load Mag Phase cal file, trying to create default", err, 5);
+		bool ss = m_calParser.createDefaultMagPhaseCalData();
+		if(ss) {
+			emit triggerMessage(INFO, "Default Mag Phase cal created", "Proceding with loading it", 5);
+			config.pathCalibrationList = m_calParser.loadMagPhaseCalDataFromFile("", s, err);
+			if(!s) {
+				emit triggerMessage(WARNING, "Failed to open recent created file", err, 5);
+				useDummyMagCal = true;
+			}
+		}
+	}
+	else {
+		emit triggerMessage(WARNING, "Could not create default file", "No idea what went wrong!", 5);
+		useDummyMagCal = true;
+	}
+	if(useDummyMagCal) {
+		emit triggerMessage(WARNING, "Mag Phase Cal", "Using dummy values", 5);
+		config.pathCalibration.pathName = "DUMMY";
+		config.pathCalibration.controlPin = -1;
+		config.pathCalibration.bandwidth_MHZ = 0.00015;
+		config.pathCalibration.centerFreq_MHZ = 10.7;
+		calParser::magCalFactors f;
+		f.dbm_val = -120;
+		f.phase_val = 0;
+		config.pathCalibration.adcToMagCalFactors.insert(0, f);
+		f.dbm_val = 0;
+		config.pathCalibration.adcToMagCalFactors.insert(32767, f);
+	}
+	if(config.pathCalibrationList.length() == 1) {
+		config.currentFinalFilterName = config.pathCalibrationList.first().pathName;
+		config.pathCalibration = config.pathCalibrationList.first();
+	}
+	else if (config.pathCalibrationList.length() > 1) {
+		foreach(calParser::magPhaseCalData p, config.pathCalibrationList) {
+			if(p.pathName == config.currentFinalFilterName) {
+				config.pathCalibration = p;
+				break;
+			}
+		}
+	}
+}
+
+void hardwareConfigWidget::on_pb_CommandDDS1_clicked()
+{
+	config.forcedDDS1.isForced = true;
+	config.forcedDDS1.outputFreq = ui->dsDDS1Output->value();
+	config.forcedDDS1.oscFreq = ui->dsDDSClock->value();
+	emit requiresReinit();
+}
+
+void hardwareConfigWidget::on_pbResetDDS1_clicked()
+{
+	config.forcedDDS1.isForced = false;
+	emit requiresReinit();
+}
+
+void hardwareConfigWidget::on_pb_CommandDDS3_clicked()
+{
+	config.forcedDDS3.isForced = true;
+	config.forcedDDS3.outputFreq = ui->dsDDS3Output->value();
+	config.forcedDDS3.oscFreq = ui->dsDDSClock->value();
+	emit requiresReinit();
+}
+
+void hardwareConfigWidget::on_pbResetDDS3_clicked()
+{
+	config.forcedDDS3.isForced = false;
+	emit requiresReinit();
+}
+
+void hardwareConfigWidget::on_resolution_filters_table_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn)
+{
+	ui->path_calibration_table->clear();
+	QString path = ui->resolution_filters_table->itemAt(0, currentRow)->text();
+	foreach (calParser::magPhaseCalData data, msa::getInstance().currentScan.configuration.pathCalibrationList) {
+		if(data.pathName == path)
+		{
+			QList<uint> keys = data.adcToMagCalFactors.keys();
+			std::sort(keys.begin(), keys.end());
+			foreach(uint key, keys) {
+				ui->path_calibration_table->insertRow(ui->path_calibration_table->rowCount());
+				ui->path_calibration_table->setItem(ui->path_calibration_table->rowCount()-1, 0,  new QTableWidgetItem(QString::number(key)));
+				ui->path_calibration_table->setItem(ui->path_calibration_table->rowCount()-1, 1,  new QTableWidgetItem(QString::number(data.adcToMagCalFactors.value(key).dbm_val)));
+				ui->path_calibration_table->setItem(ui->path_calibration_table->rowCount()-1, 2,  new QTableWidgetItem(QString::number(data.adcToMagCalFactors.value(key).phase_val)));
+			}
+		}
+	}
 }

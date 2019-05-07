@@ -30,6 +30,7 @@
 #include "controllers/interface.h"
 #include "hardwaredevice.h"
 #include <QDebug>
+#include "mainwindow.h"
 
 bool msa::getIsInverted() const
 {
@@ -46,10 +47,17 @@ void msa::setResolution_filter_bank(int value)
 	resolution_filter_bank = value;
 }
 
+void msa::setMainWindow(MainWindow *window)
+{
+	mw = window;
+}
+
 void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 {
 	currentInterface = usedInterface;
-	qDeleteAll(currentHardwareDevices);
+	foreach(hardwareDevice * dev, currentHardwareDevices.values()) {
+		delete dev;
+	}
 	currentHardwareDevices.clear();
 	foreach (msa::MSAdevice dev, devices.keys()) {
 		switch (devices.value(dev)) {
@@ -139,6 +147,12 @@ msa::scanConfig msa::getScanConfiguration()
 void msa::setScanConfiguration(msa::scanConfig configuration)
 {
 	msa::getInstance().currentScan.configuration = configuration;
+	bool found = msa::getInstance().setPathCalibrationAndExtrapolate(configuration.currentFinalFilterName);
+	if(found)
+		mw->triggerMessage(INFO, QString("%1 path chosen").arg(configuration.currentFinalFilterName), QString("Center:%1MHz Bandwidth:%2MHz").arg(msa::getInstance().getScanConfiguration().pathCalibration.centerFreq_MHZ).arg(msa::getInstance().getScanConfiguration().pathCalibration.bandwidth_MHZ), 7);
+	else
+		mw->triggerMessage(INFO, "There was a problem setting the path in use", "the path was not found", 7);
+
 }
 
 void msa::extrapolateFrequenctCalibrationForCurrentScan() {

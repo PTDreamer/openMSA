@@ -66,7 +66,6 @@ public:
 
 protected:
 	void closeEvent(QCloseEvent *event) override;
-	typedef enum {INFO, WARNING, ERROR} message_type;
 
 private slots:
 	void iconActivated(QSystemTrayIcon::ActivationReason reason);
@@ -116,11 +115,11 @@ private slots:
 	void onMessageReceivedServer(ComProtocol::messageType, QByteArray);
 	void interfaceError(QString, bool, bool);
 	void showCalibration();
+	void scanReinit();
+	void hwReinit();
 private:
-	void loadCalibrationFiles(msa::scanConfig *config);
 	void startServer(hardwareConfigWidget::appSettings_t &settings);
 	void loadHardware(hardwareConfigWidget::appSettings_t &settings);
-	calParser m_calParser;
 	HelperForm *logForm;
 	QHash<msa::MSAdevice, int> devices;
 	interface *hwInterface;

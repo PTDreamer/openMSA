@@ -720,6 +720,7 @@ void slimusb::resumeScan()
 void slimusb::cancelScan()
 {
 	this->requestInterruption();
+	this->wait(1000);
 }
 
 bool slimusb::getAutoConnect() const

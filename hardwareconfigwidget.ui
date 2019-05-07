@@ -17,7 +17,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>5</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -99,6 +99,57 @@
             <property name="maximum">
              <double>9999.000000000000000</double>
             </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QLabel" name="label_31">
+            <property name="text">
+             <string>Pin 14 Output Type</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="1">
+           <widget class="QComboBox" name="cbPLL1pin14">
+            <item>
+             <property name="text">
+              <string>Tri State</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>R Divider</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>N Divider</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Serial Data Out</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Digital Lock Detect</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>N Channel Open Drain Lock Detect</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Active High</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Active Low</string>
+             </property>
+            </item>
            </widget>
           </item>
          </layout>
@@ -265,11 +316,62 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="0">
+          <item row="4" column="0">
            <widget class="QLabel" name="label_12">
             <property name="text">
              <string/>
             </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_32">
+            <property name="text">
+             <string>Pin 14 Output Type</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QComboBox" name="cbPLL3pin14">
+            <item>
+             <property name="text">
+              <string>Tri State</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>R Divider</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>N Divider</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Serial Data Out</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Digital Lock Detect</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>N Channel Open Drain Lock Detect</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Active High</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Active Low</string>
+             </property>
+            </item>
            </widget>
           </item>
          </layout>
@@ -644,12 +746,41 @@
          </column>
          <column>
           <property name="text">
-           <string>Bandwidth (KHz)</string>
+           <string>Bandwidth (MHz)</string>
           </property>
          </column>
          <column>
           <property name="text">
            <string>Address</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Calib.Frequency(MHz)</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Calib.Date</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTableWidget" name="path_calibration_table">
+         <column>
+          <property name="text">
+           <string>ADC</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>dbm</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>phase</string>
           </property>
          </column>
         </widget>
@@ -785,6 +916,160 @@
           <string/>
          </property>
         </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_8">
+      <attribute name="title">
+       <string>Special Tests</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_7">
+       <item>
+        <widget class="QGroupBox" name="groupBox_6">
+         <property name="title">
+          <string>DDS Forced output</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout">
+          <item row="0" column="2">
+           <widget class="QDoubleSpinBox" name="dsDDS1Output">
+            <property name="decimals">
+             <number>8</number>
+            </property>
+            <property name="value">
+             <double>10.699999999999999</double>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QDoubleSpinBox" name="dsDDS3Output">
+            <property name="decimals">
+             <number>8</number>
+            </property>
+            <property name="value">
+             <double>10.699999999999999</double>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QPushButton" name="pb_CommandDDS3">
+            <property name="text">
+             <string>Command DDS3 at frequency:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QPushButton" name="pb_CommandDDS1">
+            <property name="text">
+             <string>Command DDS1 at frequency:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QPushButton" name="pbResetDDS1">
+            <property name="text">
+             <string>Reset DDS1</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QPushButton" name="pbResetDDS3">
+            <property name="text">
+             <string>Reset DDS3</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_11">
+            <property name="text">
+             <string>At DDS Clock frequency:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1" colspan="2">
+           <widget class="QDoubleSpinBox" name="dsDDSClock">
+            <property name="decimals">
+             <number>8</number>
+            </property>
+            <property name="value">
+             <double>64.000000000000000</double>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_7">
+         <property name="title">
+          <string>PLL Output Type</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_8">
+          <item>
+           <widget class="QComboBox" name="cbPLLOutputType">
+            <item>
+             <property name="text">
+              <string>Tri State (default)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>High Level</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Low Level</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>N divider</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>R divider</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Serial Data</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Digital Lock Detect</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Analog Lock Detect</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pbCavityTest">
+         <property name="text">
+          <string>Cavity filter test</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
        </item>
       </layout>
      </widget>

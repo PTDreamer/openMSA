@@ -57,6 +57,7 @@ interface::~interface()
 		qDeleteAll(dev->devicePins);
 	}
 	qDeleteAll(msa::getInstance().currentHardwareDevices);
+	msa::getInstance().currentHardwareDevices.clear();
 }
 
 bool interface::initScan()
