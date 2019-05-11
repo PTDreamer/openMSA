@@ -795,6 +795,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="pb_edit_resolution_filter">
+           <property name="text">
+            <string>Edit</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="pb_delete_resolution_filter">
            <property name="text">
             <string>Delete</string>

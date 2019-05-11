@@ -40,6 +40,7 @@ SOURCES += main.cpp\
     hardware/controllers/simulator.cpp \
     hardware/genericadc.cpp \
     hardware/msa.cpp \
+    pathcalibrationwiz.cpp \
     shared/comprotocol.cpp \
     helperform.cpp \
     calparser.cpp \
@@ -57,6 +58,7 @@ HEADERS  += mainwindow.h \
     hardware/controllers/simulator.h \
     hardware/genericadc.h \
     hardware/msa.h \
+    pathcalibrationwiz.h \
     shared/comprotocol.h \
     helperform.h \
     calparser.h \
@@ -71,7 +73,8 @@ HEADERS  += mainwindow.h \
 FORMS   += mainwindow.ui \
     helperform.ui \
     calibrationviewer.ui \
-    hardwareconfigwidget.ui
+    hardwareconfigwidget.ui \
+    pathcalibration.ui
 LIBS	+= -L./lib -lusb-1.0
 
 DISTFILES += \

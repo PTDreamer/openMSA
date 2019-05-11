@@ -31,6 +31,7 @@
 #include "calparser.h"
 #include <hardware/msa.h>
 #include "hardware/controllers/interface.h"
+#include "pathcalibrationwiz.h"
 
 namespace Ui {
 class hardwareConfigWidget;
@@ -69,6 +70,8 @@ private:
 	bool saveSettingsOnExit;
 	void loadCalibrationFiles();
 	calParser m_calParser;
+	pathCalibrationWiz *pathwiz;
+	calParser::magPhaseCalData pathCalCurrentData;
 public slots:
 	void loadSavedSettings(bool loadDefaults = false);
 	void saveSettings();
@@ -92,6 +95,8 @@ private slots:
 	void on_pbResetDDS3_clicked();
 
 	void on_resolution_filters_table_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn);
+
+	void on_pb_edit_resolution_filter_clicked();
 
 signals:
 	void triggerMessage(int type, QString title, QString text, int duration);
