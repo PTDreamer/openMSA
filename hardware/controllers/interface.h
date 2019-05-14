@@ -37,15 +37,20 @@ public:
 	enum interface_types {USB, SIMULATOR};
 	interface(QObject *parent);
 	~interface();
+	typedef enum {status_halted, status_paused, status_scanning} status;
 public slots:
-	virtual void commandNextStep() = 0;
-	virtual void commandPreviousStep() = 0;
-	virtual void pauseScan() = 0;
-	virtual void resumeScan() = 0;
+	void commandNextStep();
+	void commandPreviousStep();
+	void pauseScan();
+	void resumeScan();
 	virtual bool isScanning() = 0;
-	virtual void autoScan() = 0;
-	virtual void cancelScan() = 0;
+	void autoScan();
+	void cancelScan();
+	void setStatus(status stat);
 public:
+	status getCurrentStatus() { return  currentStatus;}
+	virtual void on_commandNextStep() = 0;
+	virtual void on_commandPreviousStep() = 0;
 	virtual bool getIsConnected() const = 0;
 	virtual bool init(int debugLevel) = 0;
 	virtual void setWriteReadDelay_us(unsigned long value) = 0;
@@ -62,10 +67,16 @@ signals:
 	void disconnected();
 	void errorTriggered(QString, bool, bool);
 protected:
+	virtual void on_autoscan() = 0;
+	virtual void on_cancelscan() = 0;
+	virtual void on_pausescan() = 0;
+	virtual void on_resumescan() = 0;
+
 	quint32 currentStep;
 	quint32 lastCommandedStep;
 	quint32 numberOfSteps;
 	int debugLevel;
+	status currentStatus;
 private:
 };
 

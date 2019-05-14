@@ -32,7 +32,7 @@
 #include <QTimer>
 #include <QRandomGenerator>
 
-simulator::simulator(QObject *parent): interface(parent), autoConnect(true), singleStep(false), writeReadDelay_us(100), isPaused(true),
+simulator::simulator(QObject *parent): interface(parent), autoConnect(true), singleStep(false), writeReadDelay_us(100),
 	pll1data(nullptr),pll1le(nullptr),dds1data(nullptr),dds1fqu(nullptr),pll2data(nullptr),pll2le(nullptr),dds3data(nullptr),dds3fqu(nullptr)
 	,pll3data(nullptr),pll3le(nullptr),pll1(nullptr),pll2(nullptr),pll3(nullptr),dds1(nullptr),dds3(nullptr),adcmag(nullptr),adcph(nullptr)
 {
@@ -80,7 +80,7 @@ bool simulator::getIsConnected() const
 	return true;
 }
 
-void simulator::commandNextStep()
+void simulator::on_commandNextStep()
 {
 	commandStep(currentStep);
 	if(!msa::getInstance().getIsInverted())
@@ -96,7 +96,7 @@ void simulator::commandNextStep()
 	}
 }
 
-void simulator::commandPreviousStep()
+void simulator::on_commandPreviousStep()
 {
 	if(!msa::getInstance().getIsInverted()) {
 		if(currentStep == 0)
@@ -429,25 +429,23 @@ QString simulator::byteToString(uint8_t byte) {
 	return str;
 }
 
-void simulator::autoScan()
+void simulator::on_autoscan()
 {
 	this->start();
 }
 
-void simulator::pauseScan()
+void simulator::on_pausescan()
 {
 	this->requestInterruption();
 	this->wait(1000);
-	isPaused = true;
 }
 
-void simulator::resumeScan()
+void simulator::on_resumescan()
 {
 	this->start();
-	isPaused = false;
 }
 
-void simulator::cancelScan()
+void simulator::on_cancelscan()
 {
 	this->requestInterruption();
 	this->wait(1000);

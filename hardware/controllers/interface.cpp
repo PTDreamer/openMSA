@@ -41,6 +41,7 @@ interface::interface(QObject *parent):QThread(parent)
 	msa::getInstance().currentScan.configuration.PLL1phasefreq = 0.974;
 	msa::getInstance().currentScan.configuration.pathCalibration.centerFreq_MHZ = 10.7;
 	msa::getInstance().currentScan.configuration.masterOscilatorFrequency = 64;
+	currentStatus = status_halted;
 }
 
 interface::~interface()
@@ -58,6 +59,60 @@ interface::~interface()
 	}
 	qDeleteAll(msa::getInstance().currentHardwareDevices);
 	msa::getInstance().currentHardwareDevices.clear();
+}
+
+void interface::commandNextStep()
+{
+	if(currentStatus != status_paused)
+		return;
+	on_commandNextStep();
+}
+
+void interface::commandPreviousStep()
+{
+	if(currentStatus != status_paused)
+		return;
+	on_commandPreviousStep();
+}
+
+void interface::pauseScan()
+{
+	currentStatus = status_paused;
+	on_pausescan();
+}
+
+void interface::resumeScan()
+{
+	currentStatus = status_scanning;
+	on_resumescan();
+}
+
+void interface::autoScan()
+{
+	currentStatus = status_scanning;
+	on_autoscan();
+}
+
+void interface::cancelScan()
+{
+	currentStatus = status_halted;
+	on_cancelscan();
+}
+
+void interface::setStatus(interface::status stat)
+{
+	switch (stat) {
+	case status_halted:
+		cancelScan();
+		break;
+	case status_paused:
+		pauseScan();
+		break;
+	case status_scanning:
+		autoScan();
+		break;
+	}
+	currentStatus = stat;
 }
 
 bool interface::initScan()

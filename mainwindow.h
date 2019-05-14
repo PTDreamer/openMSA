@@ -131,5 +131,6 @@ private:
 
 	hardwareConfigWidget *configurator;
 	void start();
+	void msaScanConfigChanged(msa::scanConfig config);
 };
 #endif // MAINWINDOW_H

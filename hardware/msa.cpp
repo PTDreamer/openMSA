@@ -50,6 +50,7 @@ void msa::setResolution_filter_bank(int value)
 void msa::setMainWindow(MainWindow *window)
 {
 	mw = window;
+	currentInterface = nullptr;
 }
 
 void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
@@ -80,6 +81,8 @@ void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 
 bool msa::initScan(bool inverted, double start, double end, quint32 steps, int band)
 {
+	interface::status statBack = currentInterface->getCurrentStatus();
+	currentInterface->setStatus(interface::status_halted);
 	msa::scanConfig cfg = msa::getInstance().getScanConfiguration();
 	cfg.gui.start  = start;
 	cfg.gui.stop = end;
@@ -129,7 +132,13 @@ bool msa::initScan(bool inverted, double start, double end, quint32 steps, int b
 	}
 	isInverted = inverted;
 	extrapolateFrequenctCalibrationForCurrentScan();
-	return currentInterface->initScan();
+	foreach(std::function<void(scanConfig)> c, scanConfigChangedCallbacks) {
+		c(cfg);
+	}
+	bool ret = currentInterface->initScan();
+	if(ret)
+		currentInterface->setStatus(statBack);
+	return ret;
 }
 
 bool msa::initScan(bool inverted, double start, double end, double step_freq, int band)
@@ -146,13 +155,19 @@ msa::scanConfig msa::getScanConfiguration()
 
 void msa::setScanConfiguration(msa::scanConfig configuration)
 {
+	interface::status s = interface::status_halted;
+	if(currentInterface) {
+		s = currentInterface->getCurrentStatus();
+		currentInterface->setStatus(interface::status_halted);
+	}
 	msa::getInstance().currentScan.configuration = configuration;
 	bool found = msa::getInstance().setPathCalibrationAndExtrapolate(configuration.currentFinalFilterName);
 	if(found)
 		mw->triggerMessage(INFO, QString("%1 path chosen").arg(configuration.currentFinalFilterName), QString("Center:%1MHz Bandwidth:%2MHz").arg(msa::getInstance().getScanConfiguration().pathCalibration.centerFreq_MHZ).arg(msa::getInstance().getScanConfiguration().pathCalibration.bandwidth_MHZ), 7);
 	else
 		mw->triggerMessage(INFO, "There was a problem setting the path in use", "the path was not found", 7);
-
+	if(currentInterface)
+		currentInterface->setStatus(s);
 }
 
 void msa::extrapolateFrequenctCalibrationForCurrentScan() {
@@ -189,6 +204,11 @@ void msa::extrapolateFrequenctCalibrationForCurrentScan() {
 			}
 		}
 	}
+}
+
+void msa::addScanConfigChangedCallback(std::function<void(scanConfig)> callback)
+{
+	scanConfigChangedCallbacks.append(callback);
 }
 bool msa::setPathCalibrationAndExtrapolate(QString pathName)
 {

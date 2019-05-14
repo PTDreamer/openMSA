@@ -82,9 +82,8 @@ public:
 //        } resolutionFilter_t;
 
 	typedef struct {
-                QHash<QString, videoFilter_t> videoFilters;
-				//QHash<QString, resolutionFilter_t> resolutionFilters;
-                calParser::freqCalData frequencyCalibration;
+		QHash<QString, videoFilter_t> videoFilters;
+		calParser::freqCalData frequencyCalibration;
 		QList<calParser::magPhaseCalData> pathCalibrationList;
 		calParser::magPhaseCalData pathCalibration;
 		QString currentFinalFilterName;
@@ -127,6 +126,8 @@ public:
 	msa::scanConfig getScanConfiguration();
 	bool setPathCalibrationAndExtrapolate(QString pathName);
 	void extrapolateFrequenctCalibrationForCurrentScan();
+	QList<std::function<void(scanConfig)>> scanConfigChangedCallbacks;
+	void addScanConfigChangedCallback(std::function<void(scanConfig)> callback);
 };
 
 #endif // MSA_H

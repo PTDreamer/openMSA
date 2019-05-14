@@ -59,13 +59,14 @@ public:
 	interface_types type() {return SIMULATOR;}
 protected:
 	void run();
+	void on_autoscan();
+	void on_pausescan();
+	void on_resumescan();
+	void on_cancelscan();
+	void on_commandNextStep();
+	void on_commandPreviousStep();
 public slots:
-	void commandNextStep();
-	void commandPreviousStep();
-	void autoScan();
-	void pauseScan();
-	void resumeScan();
-	void cancelScan();
+
 signals:
 
 private:
@@ -94,7 +95,6 @@ private:
 	bool autoConnect;
 	bool singleStep;
 	unsigned long writeReadDelay_us;
-	bool isPaused;
 	parallelEqui *pll1data;
 	parallelEqui *pll1le;
 	parallelEqui *dds1data;

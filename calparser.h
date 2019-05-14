@@ -53,7 +53,7 @@ public:
 		double dbm_val;
 		double phase_val;
 	} magCalFactors;
-	typedef struct {
+	typedef struct magPhaseCalData_{
 		int controlPin;
 		double centerFreq_MHZ;
 		double bandwidth_MHZ;

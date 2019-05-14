@@ -257,6 +257,11 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
 void MainWindow::start() {
 	isConnected = false;
+	using namespace std::placeholders; // for `_1`
+
+	msa::getInstance().addScanConfigChangedCallback(std::bind(&MainWindow::msaScanConfigChanged, this, _1));
+
+	//msa::getInstance().addScanConfigChangedCallback(fnc_ptr);
 	msa::getInstance().setMainWindow(this);
 	msa::getInstance().currentScan.steps = new QHash<quint32, msa::scanStep>();
 	hardwareConfigWidget::appSettings_t appSettings = configurator->getAppSettings();
@@ -269,6 +274,14 @@ void MainWindow::start() {
 	connect(hwInterface,SIGNAL(disconnected()), this,SLOT(on_Disconnect()), Qt::UniqueConnection);
 	if(hwInterface->getIsConnected())
 		on_Connect();
+}
+
+void MainWindow::msaScanConfigChanged(msa::scanConfig config)
+{
+	qDebug() << "scan config changed";
+	ComProtocol::msg_scan_config m_config;
+	m_config = config.gui;
+	server->sendMessage(ComProtocol::SCAN_CONFIG, ComProtocol::MESSAGE_SEND, &m_config);
 }
 
 MainWindow::~MainWindow()
@@ -338,8 +351,6 @@ void MainWindow::newConnection()
 void MainWindow::scanReinit()//used for special tests
 {
 	ComProtocol::msg_scan_config m_config;
-	bool isScanning = msa::getInstance().currentInterface->isScanning();
-	msa::getInstance().currentInterface->cancelScan();
 	msa::scanConfig config = configurator->getConfig();
 	msa::getInstance().setScanConfiguration(config);
 	config = msa::getInstance().getScanConfiguration();
@@ -350,8 +361,6 @@ void MainWindow::scanReinit()//used for special tests
 	else {
 		ok = msa::getInstance().initScan(m_config.isInvertedScan,  m_config.start, m_config.stop, m_config.step_freq, m_config.band);
 	}
-	if(isScanning)
-		msa::getInstance().currentInterface->autoScan();
 }
 
 void MainWindow::hwReinit()
@@ -373,7 +382,6 @@ void MainWindow::onMessageReceivedServer(ComProtocol::messageType type, QByteArr
 	msa::scanConfig config = msa::getInstance().getScanConfiguration();
 	config.scanType = m_config.scanType;
 	config.gui = m_config;
-	msa::getInstance().currentInterface->cancelScan();
 	msa::getInstance().setScanConfiguration(config);
 	bool ok;
 	if(m_config.isStepInSteps)// TODO HANDLE m_config.stepModeAuto
@@ -381,9 +389,11 @@ void MainWindow::onMessageReceivedServer(ComProtocol::messageType type, QByteArr
 	else {
 		ok = msa::getInstance().initScan(m_config.isInvertedScan,  m_config.start, m_config.stop, m_config.step_freq, m_config.band);
 	}
-	msa::getInstance().currentInterface->autoScan();
-	if(ok)
-		server->sendMessage(ComProtocol::SCAN_CONFIG, ComProtocol::MESSAGE_SEND, &m_config);
+	//msa::getInstance().currentInterface->autoScan();
+	//if(ok)
+		//server->sendMessage(ComProtocol::SCAN_CONFIG, ComProtocol::MESSAGE_SEND, &m_config);
+
+//		emit scanConfigChanged(config);
 	if(lastMessage != 0) {
 		//Q_ASSERT(msgNumber - lastMessage == 1);
 	}

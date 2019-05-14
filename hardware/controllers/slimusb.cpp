@@ -29,7 +29,7 @@
 #include "../lmx2326.h"
 #include "../ad9850.h"
 #include "../msa.h"
-slimusb::slimusb(QObject *parent): interface(parent), usb(parent), autoConnect(true), singleStep(false), writeReadDelay_us(100), isPaused(false),
+slimusb::slimusb(QObject *parent): interface(parent), usb(parent), autoConnect(true), singleStep(false), writeReadDelay_us(100),
 	pll1data(nullptr),pll1le(nullptr),dds1data(nullptr),dds1fqu(nullptr),pll2data(nullptr),pll2le(nullptr),dds3data(nullptr),dds3fqu(nullptr)
 	,pll3data(nullptr),pll3le(nullptr),pll1(nullptr),pll2(nullptr),pll3(nullptr),dds1(nullptr),dds3(nullptr),adcmag(nullptr),adcph(nullptr)
 {
@@ -91,7 +91,7 @@ bool slimusb::getIsConnected() const
 	return (usbdevice::deviceHandler != nullptr);
 }
 
-void slimusb::commandNextStep()
+void slimusb::on_commandNextStep()
 {
 	commandStep(currentStep);
 	if(!msa::getInstance().getIsInverted())
@@ -107,7 +107,7 @@ void slimusb::commandNextStep()
 	}
 }
 
-void slimusb::commandPreviousStep()
+void slimusb::on_commandPreviousStep()
 {
 	if(!msa::getInstance().getIsInverted()) {
 		if(currentStep == 0)
@@ -699,25 +699,23 @@ QString slimusb::byteToString(uint8_t byte) {
 	return str;
 }
 
-void slimusb::autoScan()
+void slimusb::on_autoscan()
 {
 	this->start();
 }
 
-void slimusb::pauseScan()
+void slimusb::on_pausescan()
 {
 	this->requestInterruption();
 	this->wait(1000);
-	isPaused = true;
 }
 
-void slimusb::resumeScan()
+void slimusb::on_resumescan()
 {
 	this->start();
-	isPaused = false;
 }
 
-void slimusb::cancelScan()
+void slimusb::on_cancelscan()
 {
 	this->requestInterruption();
 	this->wait(1000);
