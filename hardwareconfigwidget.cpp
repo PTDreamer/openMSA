@@ -136,6 +136,7 @@ void hardwareConfigWidget::loadSavedSettings(bool loadDefaults)
 	config.PLL1pin14Output = settings->value("msa/hardwareConfig/PLL1pin14Output", 0).toUInt();
 	config.PLL3pin14Output = settings->value("msa/hardwareConfig/PLL3pin14Output", 0).toUInt();
 	config.currentFinalFilterName = (settings->value("msa/hardwareConfig/finalFilterName", "DUMMY").toString());
+	config.currentVideoFilterName = (settings->value("msa/hardwareConfig/currentVideoFilterName", "").toString());
 
 	config.scanType = ComProtocol::scanType_t(settings->value("app/lastValues/scanType", ComProtocol::SA_SG).toInt());
 	config.adcAveraging = uint8_t (settings->value("app/lastValues/adcAveraging", 2).toUInt());
@@ -194,6 +195,9 @@ void hardwareConfigWidget::loadSavedSettings(bool loadDefaults)
 		  config.videoFilters.insert(settings->value("name").toString(), v);
 	  }
 	settings->endArray();
+	if(config.currentVideoFilterName.isEmpty() && config.videoFilters.keys().length() > 0)
+		config.currentVideoFilterName = config.videoFilters.keys().first();
+
 	loadCalibrationFiles();
 }
 
@@ -233,6 +237,7 @@ void hardwareConfigWidget::saveSettings()
 	settings->setValue("msa/hardwareConfig/PLL1pin14Output", config.PLL1pin14Output);
 	settings->setValue("msa/hardwareConfig/PLL3pin14Output", config.PLL3pin14Output);
 	settings->setValue("msa/hardwareConfig/finalFilterName", config.currentFinalFilterName);
+	settings->setValue("msa/hardwareConfig/currentVideoFilterName", config.currentVideoFilterName);
 
 
 

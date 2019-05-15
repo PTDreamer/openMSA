@@ -87,6 +87,7 @@ public:
 		QList<calParser::magPhaseCalData> pathCalibrationList;
 		calParser::magPhaseCalData pathCalibration;
 		QString currentFinalFilterName;
+		QString currentVideoFilterName;
 		double baseFrequency;
 		double LO2; // from configuration
 		double appxdds1; // center freq. of DDS1 xtal filter; exact value determined in calibration
@@ -128,6 +129,7 @@ public:
 	void extrapolateFrequenctCalibrationForCurrentScan();
 	QList<std::function<void(scanConfig)>> scanConfigChangedCallbacks;
 	void addScanConfigChangedCallback(std::function<void(scanConfig)> callback);
+	bool initScan(ComProtocol::msg_scan_config msg);
 };
 
 #endif // MSA_H

@@ -29,10 +29,11 @@
 #include "../lmx2326.h"
 #include "../ad9850.h"
 #include "../msa.h"
-slimusb::slimusb(QObject *parent): interface(parent), usb(parent), autoConnect(true), singleStep(false), writeReadDelay_us(100),
+slimusb::slimusb(QObject *parent): interface(parent), usb(parent), autoConnect(true), singleStep(false),
 	pll1data(nullptr),pll1le(nullptr),dds1data(nullptr),dds1fqu(nullptr),pll2data(nullptr),pll2le(nullptr),dds3data(nullptr),dds3fqu(nullptr)
 	,pll3data(nullptr),pll3le(nullptr),pll1(nullptr),pll2(nullptr),pll3(nullptr),dds1(nullptr),dds3(nullptr),adcmag(nullptr),adcph(nullptr)
 {
+	readDelay_us = 100;
 	lastCommandedStep = 0;
 	usbB2union.command.adcMAG = 0;
 	usbB2union.command.adcPhase = 0;
@@ -81,7 +82,7 @@ void slimusb::commandStep(quint32 step)
 	if(msa::getInstance().currentInterface->getDebugLevel() > 1)
 		qDebug()<<"step:"<< step;
 	sendUSB(*usbData.value(step), 7, false);
-	QThread::usleep(writeReadDelay_us);
+	QThread::usleep(readDelay_us);
 	sendUSB(adcSend, 0, false, true);
 	lastCommandedStep = step;
 }
@@ -743,19 +744,9 @@ void slimusb::printUSBData(quint32 step) {
 	}
 }
 
-unsigned long slimusb::getWriteReadDelay_us() const
+void slimusb::on_setWriteReadDelay_us(unsigned long value)
 {
-	return writeReadDelay_us;
-}
-
-void slimusb::setWriteReadDelay_us(unsigned long value)
-{
-	writeReadDelay_us = value;
-}
-
-bool slimusb::isScanning()
-{
-	return this->isRunning();
+	Q_UNUSED(value);
 }
 
 QList<usbdevice::usbDevice_t> slimusb::getDevices()

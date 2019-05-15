@@ -115,6 +115,12 @@ void interface::setStatus(interface::status stat)
 	currentStatus = stat;
 }
 
+void interface::setWriteReadDelay_us(unsigned long value)
+{
+	readDelay_us = value;
+	on_setWriteReadDelay_us(value);
+}
+
 bool interface::initScan()
 {
 	msa::scanStruct scan = msa::getInstance().currentScan;

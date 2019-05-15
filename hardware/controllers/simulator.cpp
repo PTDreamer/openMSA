@@ -32,10 +32,11 @@
 #include <QTimer>
 #include <QRandomGenerator>
 
-simulator::simulator(QObject *parent): interface(parent), autoConnect(true), singleStep(false), writeReadDelay_us(100),
+simulator::simulator(QObject *parent): interface(parent), autoConnect(true), singleStep(false),
 	pll1data(nullptr),pll1le(nullptr),dds1data(nullptr),dds1fqu(nullptr),pll2data(nullptr),pll2le(nullptr),dds3data(nullptr),dds3fqu(nullptr)
 	,pll3data(nullptr),pll3le(nullptr),pll1(nullptr),pll2(nullptr),pll3(nullptr),dds1(nullptr),dds3(nullptr),adcmag(nullptr),adcph(nullptr)
 {
+	readDelay_us = 100;
 	lastCommandedStep = 0;
 	usbB2union.command.adcMAG = 0;
 	usbB2union.command.adcPhase = 0;
@@ -70,7 +71,7 @@ void simulator::commandStep(quint32 step)
 {
 	quint32 totalSteps = msa::getInstance().getScanConfiguration().gui.steps_number;
 	double currentStepPart = double(step) / totalSteps;
-	QThread::usleep(writeReadDelay_us);
+	QThread::usleep(readDelay_us);
 	emit dataReady(step, quint32(5000 * (QRandomGenerator::global()->generateDouble() + sin(currentStepPart * 2 * M_PI)) + 20000), quint32(5000 * ( QRandomGenerator::global()->generateDouble()+cos(currentStepPart * 2 * M_PI)) + 20000));
 	//emit dataReady(step, quint32(5000 + 10000), 0);
 }
@@ -461,17 +462,7 @@ void simulator::setAutoConnect(bool value)
 	autoConnect = value;
 }
 
-unsigned long simulator::getWriteReadDelay_us() const
+void simulator::on_setWriteReadDelay_us(unsigned long value)
 {
-	return writeReadDelay_us;
-}
-
-void simulator::setWriteReadDelay_us(unsigned long value)
-{
-	writeReadDelay_us = value;
-}
-
-bool simulator::isScanning()
-{
-	return this->isRunning();
+	Q_UNUSED(value);
 }

@@ -28,7 +28,10 @@
 
 #include <QWidget>
 #include "calparser.h"
-
+#include "hardware/msa.h"
+#include "hardware/controllers/interface.h"
+#include <QMutex>
+#include <QMutexLocker>
 namespace Ui {
 class pathCalibration;
 }
@@ -43,9 +46,21 @@ public:
 
 private slots:
 	void on_pb_start_clicked();
+	void adcDataReady(quint32, quint32, quint32);
 
+	void on_pb_read_adc_clicked();
+	void onAveragesReady(double mag, double phase);
+signals:
+	void averagesReady(double mag, double phase);
 private:
 	Ui::pathCalibration *ui;
+	msa::scanConfig scanConfigBackup;
+	interface::status scanStatusBackup;
+	unsigned int readDelayBackup;
+	double lastMag;
+	double lastPhase;
+	QMutex *mutex;
+	QMutex *valmutex;
 };
 
 #endif // PATHCALIBRATION_H

@@ -35,12 +35,18 @@
         <property name="decimals">
          <number>9</number>
         </property>
+        <property name="value">
+         <double>0.015000000000000</double>
+        </property>
        </widget>
       </item>
       <item row="4" column="1">
        <widget class="QSpinBox" name="sb_average">
         <property name="minimum">
          <number>1</number>
+        </property>
+        <property name="maximum">
+         <number>99999</number>
         </property>
         <property name="value">
          <number>30</number>
@@ -87,7 +93,10 @@
       <item row="5" column="1">
        <widget class="QSpinBox" name="sb_delay">
         <property name="maximum">
-         <number>1000</number>
+         <number>9999</number>
+        </property>
+        <property name="value">
+         <number>500</number>
         </property>
        </widget>
       </item>
@@ -115,6 +124,9 @@
        <widget class="QDoubleSpinBox" name="ds_cal_frequency">
         <property name="decimals">
          <number>9</number>
+        </property>
+        <property name="value">
+         <double>2.000000000000000</double>
         </property>
        </widget>
       </item>
@@ -154,6 +166,13 @@
        <widget class="QPushButton" name="pb_read_adc">
         <property name="text">
          <string>Read ADC</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QProgressBar" name="progressBar">
+        <property name="value">
+         <number>0</number>
         </property>
        </widget>
       </item>

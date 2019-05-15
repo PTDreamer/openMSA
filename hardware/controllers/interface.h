@@ -42,9 +42,7 @@ public slots:
 	void commandNextStep();
 	void commandPreviousStep();
 	void pauseScan();
-	void resumeScan();
-	virtual bool isScanning() = 0;
-	void autoScan();
+	void resumeScan();	void autoScan();
 	void cancelScan();
 	void setStatus(status stat);
 public:
@@ -53,7 +51,8 @@ public:
 	virtual void on_commandPreviousStep() = 0;
 	virtual bool getIsConnected() const = 0;
 	virtual bool init(int debugLevel) = 0;
-	virtual void setWriteReadDelay_us(unsigned long value) = 0;
+	void setWriteReadDelay_us(unsigned long value);
+	unsigned long getWriteReadDelay_us() {return readDelay_us;}
 	virtual bool initScan();
 	void setScanConfiguration(msa::scanConfig configuration);
 	virtual void hardwareInit();
@@ -71,12 +70,13 @@ protected:
 	virtual void on_cancelscan() = 0;
 	virtual void on_pausescan() = 0;
 	virtual void on_resumescan() = 0;
-
+	virtual void on_setWriteReadDelay_us(unsigned long value) = 0;
 	quint32 currentStep;
 	quint32 lastCommandedStep;
 	quint32 numberOfSteps;
 	int debugLevel;
 	status currentStatus;
+	unsigned long readDelay_us;
 private:
 };
 

@@ -51,9 +51,6 @@ public:
 	bool getIsConnected() const;
 	bool initScan();
 	void hardwareInit();
-	unsigned long getWriteReadDelay_us() const;
-	void setWriteReadDelay_us(unsigned long value);
-	bool isScanning();
 	QByteArray convertStringToByteArray(QString str);
 	bool sendArrayForDebug(QByteArray);
 	interface_types type() {return SIMULATOR;}
@@ -65,6 +62,7 @@ protected:
 	void on_cancelscan();
 	void on_commandNextStep();
 	void on_commandPreviousStep();
+	void on_setWriteReadDelay_us(unsigned long value);
 public slots:
 
 signals:
@@ -94,7 +92,6 @@ private:
 	QHash<msa::MSAdevice, QHash<hardwareDevice::HWdevice, parallelEqui>> pinMapping;
 	bool autoConnect;
 	bool singleStep;
-	unsigned long writeReadDelay_us;
 	parallelEqui *pll1data;
 	parallelEqui *pll1le;
 	parallelEqui *dds1data;

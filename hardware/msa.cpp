@@ -79,13 +79,26 @@ void msa::hardwareInit(QHash<MSAdevice, int> devices, interface *usedInterface)
 	currentInterface->hardwareInit();
 }
 
+bool msa::initScan(ComProtocol::msg_scan_config msg) {
+	if(msg.isStepInSteps)
+		initScan(msg.isInvertedScan, msg.start, msg.stop, msg.steps_number, msg.band);
+	else
+		initScan(msg.isInvertedScan, msg.start, msg.stop, msg.step_freq, msg.band);
+}
+
 bool msa::initScan(bool inverted, double start, double end, quint32 steps, int band)
 {
 	interface::status statBack = currentInterface->getCurrentStatus();
 	currentInterface->setStatus(interface::status_halted);
 	msa::scanConfig cfg = msa::getInstance().getScanConfiguration();
-	cfg.gui.start  = start;
-	cfg.gui.stop = end;
+	if(qFuzzyCompare(start, end)) {// for zero span
+		cfg.gui.start = 0;
+		cfg.gui.stop = steps;
+	}
+	else {
+		cfg.gui.start  = start;
+		cfg.gui.stop = end;
+	}
 	cfg.gui.steps_number = steps;
 	cfg.gui.band = band;
 	//TODO CalculateAllStepsForLO3Synth
@@ -93,7 +106,10 @@ bool msa::initScan(bool inverted, double start, double end, quint32 steps, int b
 	double step = (end - start) / double(steps);
 	if(step > msa::getInstance().currentScan.configuration.pathCalibration.bandwidth_MHZ)
 		msa::getInstance().currentInterface->errorOcurred(msa::MSA, "Frequency step size exceeds final filter bandwidth signals may be missed.", false, true);
-	cfg.gui.step_freq = step;
+	if(qFuzzyCompare(start, end))// for zero span
+		cfg.gui.step_freq = 1;
+	else
+		cfg.gui.step_freq = step;
 	msa::getInstance().setScanConfiguration(cfg);
 	int thisBand = 0;
 	int bandSelect = 0;
