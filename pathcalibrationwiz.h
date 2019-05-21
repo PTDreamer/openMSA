@@ -32,11 +32,13 @@
 #include "hardware/controllers/interface.h"
 #include <QMutex>
 #include <QMutexLocker>
+#include <QDialog>
+
 namespace Ui {
 class pathCalibration;
 }
 
-class pathCalibrationWiz : public QWidget
+class pathCalibrationWiz : public QDialog
 {
 	Q_OBJECT
 
@@ -44,14 +46,24 @@ public:
 	explicit pathCalibrationWiz(QString name, double centerFreq, double bandWidth, calParser::magPhaseCalData data, QWidget *parent = nullptr);
 	~pathCalibrationWiz();
 
+	calParser::magPhaseCalData getReturnData() const;
+
 private slots:
 	void on_pb_start_clicked();
 	void adcDataReady(quint32, quint32, quint32);
 
 	void on_pb_read_adc_clicked();
 	void onAveragesReady(double mag, double phase);
+	void on_pb_delete_measurement_clicked();
+
+	void on_pb_cancel_clicked();
+
+	void on_pb_save_clicked();
+
 signals:
 	void averagesReady(double mag, double phase);
+   void WidgetClosed(calParser::magPhaseCalData data);
+protected:
 private:
 	Ui::pathCalibration *ui;
 	msa::scanConfig scanConfigBackup;
@@ -61,6 +73,7 @@ private:
 	double lastPhase;
 	QMutex *mutex;
 	QMutex *valmutex;
+	calParser::magPhaseCalData returnData;
 };
 
 #endif // PATHCALIBRATION_H

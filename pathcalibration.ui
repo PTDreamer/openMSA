@@ -96,7 +96,7 @@
          <number>9999</number>
         </property>
         <property name="value">
-         <number>500</number>
+         <number>100</number>
         </property>
        </widget>
       </item>
@@ -226,6 +226,12 @@
       </item>
       <item>
        <widget class="QTableWidget" name="tw_pathCalibration">
+        <property name="selectionMode">
+         <enum>QAbstractItemView::SingleSelection</enum>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectRows</enum>
+        </property>
         <column>
          <property name="text">
           <string>ADC</string>

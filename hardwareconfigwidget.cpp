@@ -633,7 +633,20 @@ void hardwareConfigWidget::on_pb_delete_video_filter_clicked()
 void hardwareConfigWidget::on_pb_add_resolution_filter_clicked()
 {
 	pathwiz = new pathCalibrationWiz("", 10.7, 0, calParser::magPhaseCalData());
-	pathwiz->show();
+	int result = pathwiz->exec();
+	if(result == QDialog::Accepted) {
+		calParser::magPhaseCalData d = pathwiz->getReturnData();
+		ui->resolution_filters_table->insertRow(ui->resolution_filters_table->rowCount());
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 0,  new QTableWidgetItem(d.pathName));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 1,  new QTableWidgetItem(QString::number(d.centerFreq_MHZ)));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 2,  new QTableWidgetItem(QString::number(d.bandwidth_MHZ)));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 3,  new QTableWidgetItem(QString::number(d.controlPin)));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 4,  new QTableWidgetItem(QString::number(d.calFrequency)));
+		ui->resolution_filters_table->setItem(ui->resolution_filters_table->rowCount()-1, 5,  new QTableWidgetItem(d.calDate));
+		config.pathCalibrationList.append(d);
+		ui->resolution_filters_table->setCurrentCell(ui->resolution_filters_table->rowCount() -1, 0);
+		on_resolution_filters_table_currentCellChanged(ui->resolution_filters_table->rowCount() - 1, 0, 0, 0);
+	}
 }
 
 void hardwareConfigWidget::on_pb_delete_resolution_filter_clicked()
@@ -766,7 +779,7 @@ void hardwareConfigWidget::on_resolution_filters_table_currentCellChanged(int cu
 	Q_UNUSED(previousRow);
 	Q_UNUSED(previousColumn);
 	ui->path_calibration_table->clearContents();
-	QString path = ui->resolution_filters_table->itemAt(0, currentRow)->text();
+	QString path = ui->resolution_filters_table->item(currentRow, 0)->text();
 	foreach (calParser::magPhaseCalData data, config.pathCalibrationList) {
 		if(data.pathName == path)
 		{
@@ -792,5 +805,21 @@ void hardwareConfigWidget::on_pb_edit_resolution_filter_clicked()
 	QString bw = ui->resolution_filters_table->item(ui->resolution_filters_table->currentRow(), 2)->text();
 	qDebug() << name << cfreq << bw;
 	pathwiz = new pathCalibrationWiz(name, cfreq.toDouble(), bw.toDouble(), pathCalCurrentData);
-	pathwiz->show();
+	int result = pathwiz->exec();
+	if(result == QDialog::Accepted) {
+		for(int x = 0; x < config.pathCalibrationList.count(); ++x) {
+			if(config.pathCalibrationList.at(x).pathName == name)
+			{
+				config.pathCalibrationList[x].adcToMagCalFactors = pathwiz->getReturnData().adcToMagCalFactors;
+			}
+		}
+		on_resolution_filters_table_currentCellChanged(ui->resolution_filters_table->currentRow(), 0, 0, 0);
+	}
+	delete pathwiz;
+	pathwiz = nullptr;
+}
+
+void hardwareConfigWidget::onPathWizClosed(calParser::magPhaseCalData data)
+{
+
 }

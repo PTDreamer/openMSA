@@ -97,7 +97,7 @@ private slots:
 	void on_resolution_filters_table_currentCellChanged(int currentRow, int currentColumn, int previousRow, int previousColumn);
 
 	void on_pb_edit_resolution_filter_clicked();
-
+	void onPathWizClosed(calParser::magPhaseCalData data);
 signals:
 	void triggerMessage(int type, QString title, QString text, int duration);
 	void requiresReinit();

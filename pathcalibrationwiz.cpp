@@ -26,8 +26,10 @@
 #include "pathcalibrationwiz.h"
 #include "ui_pathcalibration.h"
 #include <QMessageBox>
+#include <QDateTime>
+
 pathCalibrationWiz::pathCalibrationWiz(QString name, double centerFreq, double bandWidth, calParser::magPhaseCalData data, QWidget *parent) :
-	QWidget(parent),
+	QDialog(parent),
 	ui(new Ui::pathCalibration)
 {
 	ui->setupUi(this);
@@ -140,7 +142,7 @@ void pathCalibrationWiz::onAveragesReady(double mag, double phase)
 {
 	static double phaseRef;
 	double phased = 360 * phase / 65535;
-	if(ui->cb_read_phase) {
+	if(ui->cb_read_phase->isChecked()) {
 		if(ui->tw_pathCalibration->rowCount() == 0)
 			phaseRef = phased;
 		else {
@@ -153,9 +155,9 @@ void pathCalibrationWiz::onAveragesReady(double mag, double phase)
 	}
 	ui->tw_pathCalibration->insertRow(ui->tw_pathCalibration->rowCount());
 	ui->tw_pathCalibration->setItem(ui->tw_pathCalibration->rowCount()-1, 0,  new QTableWidgetItem(QString::number(mag)));
-	if(ui->cb_read_phase)
+	if(ui->cb_read_phase->isChecked())
 		ui->tw_pathCalibration->setItem(ui->tw_pathCalibration->rowCount()-1, 2,  new QTableWidgetItem(QString::number(phased)));
-	if(ui->cb_autoset_dbm && ui->tw_pathCalibration->rowCount() > 1) {
+	if(ui->cb_autoset_dbm->isChecked() && ui->tw_pathCalibration->rowCount() > 1 && ui->tw_pathCalibration->item(ui->tw_pathCalibration->rowCount() - 2, 1)) {
 		bool ok;
 		double last = ui->tw_pathCalibration->item(ui->tw_pathCalibration->rowCount() - 2, 1)->text().toDouble(&ok);
 		if(ok) {
@@ -163,4 +165,45 @@ void pathCalibrationWiz::onAveragesReady(double mag, double phase)
 			ui->tw_pathCalibration->setItem(ui->tw_pathCalibration->rowCount() -1, 1, new QTableWidgetItem(QString::number(last)));
 		}
 	}
+}
+
+void pathCalibrationWiz::on_pb_delete_measurement_clicked()
+{
+	ui->tw_pathCalibration->removeRow(ui->tw_pathCalibration->currentRow());
+}
+
+void pathCalibrationWiz::on_pb_cancel_clicked()
+{
+	this->reject();
+}
+
+void pathCalibrationWiz::on_pb_save_clicked()
+{
+	returnData.calDate = QDateTime::currentDateTime().toString();
+	returnData.pathName = ui->le_name->text();
+	returnData.controlPin = -1;
+	returnData.bandwidth_MHZ = ui->ds_bandwidth->value();
+	returnData.centerFreq_MHZ = ui->ds_center_frequency->value();
+	returnData.calFrequency = ui->ds_cal_frequency->value();
+	for(int x = 0; x < ui->tw_pathCalibration->rowCount();++x) {
+		if(!ui->tw_pathCalibration->item(x, 0))
+			continue;
+		double adc = ui->tw_pathCalibration->item(x, 0)->text().toDouble();
+		if(!ui->tw_pathCalibration->item(x, 1))
+			continue;
+		double mag = ui->tw_pathCalibration->item(x, 1)->text().toDouble();
+		double phase = 181;
+		if(ui->tw_pathCalibration->item(x, 2))
+			phase = ui->tw_pathCalibration->item(x, 2)->text().toDouble();
+		calParser::magCalFactors factors;
+		factors.dbm_val = mag;
+		factors.phase_val = phase;
+		returnData.adcToMagCalFactors.insert(uint(adc), factors);
+	}
+	this->accept();
+}
+
+calParser::magPhaseCalData pathCalibrationWiz::getReturnData() const
+{
+	return returnData;
 }
