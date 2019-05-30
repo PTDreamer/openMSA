@@ -43,7 +43,7 @@ class pathCalibrationWiz : public QDialog
 	Q_OBJECT
 
 public:
-	explicit pathCalibrationWiz(QString name, double centerFreq, double bandWidth, calParser::magPhaseCalData data, QWidget *parent = nullptr);
+	explicit pathCalibrationWiz(QString name, double centerFreq, double bandWidth, int controlPin, double calibFreq, calParser::magPhaseCalData data, QWidget *parent = nullptr);
 	~pathCalibrationWiz();
 
 	calParser::magPhaseCalData getReturnData() const;
@@ -59,6 +59,8 @@ private slots:
 	void on_pb_cancel_clicked();
 
 	void on_pb_save_clicked();
+
+	void on_saveConfigData_clicked();
 
 signals:
 	void averagesReady(double mag, double phase);

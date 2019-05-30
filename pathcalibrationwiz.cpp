@@ -28,7 +28,7 @@
 #include <QMessageBox>
 #include <QDateTime>
 
-pathCalibrationWiz::pathCalibrationWiz(QString name, double centerFreq, double bandWidth, calParser::magPhaseCalData data, QWidget *parent) :
+pathCalibrationWiz::pathCalibrationWiz(QString name, double centerFreq, double bandWidth, int controlPin, double calibFreq, calParser::magPhaseCalData data, QWidget *parent) :
 	QDialog(parent),
 	ui(new Ui::pathCalibration)
 {
@@ -36,7 +36,18 @@ pathCalibrationWiz::pathCalibrationWiz(QString name, double centerFreq, double b
 	ui->le_name->setText(name);
 	ui->ds_center_frequency->setValue(centerFreq);
 	ui->ds_bandwidth->setValue(bandWidth);
+	ui->ds_cal_frequency->setValue(calibFreq);
 	QList<uint> keys = data.adcToMagCalFactors.keys();
+	if(controlPin != -1) {
+		ui->cb_auto_control->setChecked(true);
+		ui->sb_control_pin->setValue(controlPin);
+	}
+	else {
+		ui->cb_auto_control->setChecked(false);
+		ui->sb_control_pin->setValue(0);
+	}
+	ui->label_8->setEnabled(ui->cb_auto_control->isChecked());
+	ui->sb_control_pin->setEnabled(ui->cb_auto_control->isChecked());
 	std::sort(keys.begin(), keys.end());
 	int count = 0;
 	foreach(uint key, keys) {
@@ -181,7 +192,10 @@ void pathCalibrationWiz::on_pb_save_clicked()
 {
 	returnData.calDate = QDateTime::currentDateTime().toString();
 	returnData.pathName = ui->le_name->text();
-	returnData.controlPin = -1;
+	if(ui->cb_auto_control->isChecked())
+		returnData.controlPin = ui->sb_control_pin->value();
+	else
+		returnData.controlPin = -1;
 	returnData.bandwidth_MHZ = ui->ds_bandwidth->value();
 	returnData.centerFreq_MHZ = ui->ds_center_frequency->value();
 	returnData.calFrequency = ui->ds_cal_frequency->value();
@@ -206,4 +220,9 @@ void pathCalibrationWiz::on_pb_save_clicked()
 calParser::magPhaseCalData pathCalibrationWiz::getReturnData() const
 {
 	return returnData;
+}
+
+void pathCalibrationWiz::on_saveConfigData_clicked()
+{
+	on_pb_save_clicked();
 }

@@ -29,7 +29,7 @@
 #include <QDir>
 
 //! [0]
-MainWindow::MainWindow():hwInterface(nullptr)
+MainWindow::MainWindow():hwInterface(nullptr), server(nullptr)
 {
 	logForm = new HelperForm();
 
@@ -49,7 +49,9 @@ MainWindow::MainWindow():hwInterface(nullptr)
 	//connect(showMessageButton, &QAbstractButton::clicked, this, &MainWindow::showMessage);
 	connect(trayIcon, &QSystemTrayIcon::messageClicked, this, &MainWindow::messageClicked);
 	connect(trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::iconActivated);
-
+	trayIconTimer = new QTimer;
+	trayIconTimer->setSingleShot(true);
+	connect(trayIconTimer, &QTimer::timeout, this, &MainWindow::trayIconTimerCallback);
 	QVBoxLayout *mainLayout = new QVBoxLayout;
 	mainLayout->addWidget(messageGroupBox);
 	setLayout(mainLayout);
@@ -118,6 +120,18 @@ void MainWindow::iconActivated(QSystemTrayIcon::ActivationReason reason)
 //! [5]
 void MainWindow::showMessage(int type, QString title, QString text, int duration)
 {
+	qDebug() << title << text << duration << trayMessagesList.length();
+	if(trayIconTimer->isActive()) {
+		trayMessages t;
+		t.type =type;
+		t.title = title;
+		t.text = text;
+		t.duration = duration;
+		trayMessagesList.append(t);
+		trayIconTimer->start(duration * 1000);
+		return;
+	}
+	trayIconTimer->start(duration * 1000);
 	QSystemTrayIcon::MessageIcon msgIcon = QSystemTrayIcon::Information;
 	switch (type) {
 	case INFO:
@@ -281,7 +295,8 @@ void MainWindow::msaScanConfigChanged(msa::scanConfig config)
 	qDebug() << "scan config changed";
 	ComProtocol::msg_scan_config m_config;
 	m_config = config.gui;
-	server->sendMessage(ComProtocol::SCAN_CONFIG, ComProtocol::MESSAGE_SEND, &m_config);
+	if(server)
+		server->sendMessage(ComProtocol::SCAN_CONFIG, ComProtocol::MESSAGE_SEND, &m_config);
 }
 
 MainWindow::~MainWindow()
@@ -366,6 +381,15 @@ void MainWindow::scanReinit()//used for special tests
 void MainWindow::hwReinit()
 {
 	start();
+}
+
+void MainWindow::trayIconTimerCallback()
+{
+	if(trayMessagesList.length() == 0)
+		return;
+	trayMessages t = trayMessagesList.last();
+	trayMessagesList.removeLast();
+	showMessage(t.type, t.title, t.text, t.duration);
 }
 
 void MainWindow::onMessageReceivedServer(ComProtocol::messageType type, QByteArray data)

@@ -117,7 +117,14 @@ private slots:
 	void showCalibration();
 	void scanReinit();
 	void hwReinit();
+	void trayIconTimerCallback();
 private:
+	typedef struct {
+		int type;
+		QString title;
+		QString text;
+		int duration;
+	} trayMessages;
 	void startServer(hardwareConfigWidget::appSettings_t &settings);
 	void loadHardware(hardwareConfigWidget::appSettings_t &settings);
 	HelperForm *logForm;
@@ -132,5 +139,7 @@ private:
 	hardwareConfigWidget *configurator;
 	void start();
 	void msaScanConfigChanged(msa::scanConfig config);
+	QVector<trayMessages> trayMessagesList;
+	QTimer *trayIconTimer;
 };
 #endif // MAINWINDOW_H

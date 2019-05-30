@@ -72,6 +72,8 @@ private:
 	calParser m_calParser;
 	pathCalibrationWiz *pathwiz;
 	calParser::magPhaseCalData pathCalCurrentData;
+	QList<calParser::magPhaseCalData> pathCalibrationListWorkData;
+	QHash<QString, msa::videoFilter_t> videoFiltersWorkData;
 public slots:
 	void loadSavedSettings(bool loadDefaults = false);
 	void saveSettings();

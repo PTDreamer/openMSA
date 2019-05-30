@@ -17,7 +17,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>5</number>
+      <number>6</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -728,12 +728,21 @@
       <layout class="QVBoxLayout" name="verticalLayout_6">
        <item>
         <widget class="QTableWidget" name="resolution_filters_table">
+         <property name="sizeAdjustPolicy">
+          <enum>QAbstractScrollArea::AdjustToContents</enum>
+         </property>
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
          <property name="selectionMode">
           <enum>QAbstractItemView::SingleSelection</enum>
          </property>
          <property name="selectionBehavior">
           <enum>QAbstractItemView::SelectRows</enum>
          </property>
+         <attribute name="verticalHeaderCascadingSectionResizes">
+          <bool>true</bool>
+         </attribute>
          <column>
           <property name="text">
            <string>Name</string>
@@ -767,22 +776,31 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableWidget" name="path_calibration_table">
-         <column>
-          <property name="text">
-           <string>ADC</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>dbm</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>phase</string>
-          </property>
-         </column>
+        <widget class="QGroupBox" name="groupBox_8">
+         <property name="title">
+          <string>Path Calibration</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_9">
+          <item>
+           <widget class="QTableWidget" name="path_calibration_table">
+            <column>
+             <property name="text">
+              <string>ADC</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>dbm</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>phase</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
        <item>
@@ -811,6 +829,11 @@
         </layout>
        </item>
       </layout>
+     </widget>
+     <widget class="QWidget" name="tab_9">
+      <attribute name="title">
+       <string>Frequency Calibration</string>
+      </attribute>
      </widget>
      <widget class="QWidget" name="tab_6">
       <attribute name="title">
