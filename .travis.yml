@@ -1,0 +1,22 @@
+language: cpp
+dist: bionic
+compiler: gcc
+
+addons:
+  apt:
+    # update: true
+    packages:
+    - qt5-default
+    - qtbase5-dev
+    - qttools5-dev-tools
+    - qttools5-dev
+    - qtscript5-dev
+    - libqt5charts5-dev
+    - libqt5svg5-dev
+    - libusb-1.0-0-dev # need this and not libusb-dev
+
+script:
+  - qmake --version
+  - qmake
+  - make
+
