@@ -30,7 +30,13 @@
 #include "../ad9850.h"
 #include "../msa.h"
 #include <QTimer>
+#include <QtGlobal> // for QT_VERSION
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+#include <random>
+#else
 #include <QRandomGenerator>
+#endif
 
 simulator::simulator(QObject *parent): interface(parent), autoConnect(true), singleStep(false),
 	pll1data(nullptr),pll1le(nullptr),dds1data(nullptr),dds1fqu(nullptr),pll2data(nullptr),pll2le(nullptr),dds3data(nullptr),dds3fqu(nullptr)
@@ -69,10 +75,20 @@ simulator::~simulator()
 
 void simulator::commandStep(quint32 step)
 {
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+        std::default_random_engine gen;
+        std::uniform_real_distribution<double> dis(0.0, 1.0);
+#endif
+
 	quint32 totalSteps = msa::getInstance().getScanConfiguration().gui.steps_number;
 	double currentStepPart = double(step) / totalSteps;
 	QThread::usleep(readDelay_us);
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
+        emit dataReady(step, quint32(5000 * (dis(gen) + sin(currentStepPart * 2 * M_PI)) + 20000), quint32(5000 * (dis(gen) + cos(currentStepPart * 2 * M_PI)) + 20000));
+#else
 	emit dataReady(step, quint32(5000 * (QRandomGenerator::global()->generateDouble() + sin(currentStepPart * 2 * M_PI)) + 20000), quint32(5000 * ( QRandomGenerator::global()->generateDouble()+cos(currentStepPart * 2 * M_PI)) + 20000));
+#endif
 	//emit dataReady(step, quint32(5000 + 10000), 0);
 }
 
