@@ -16,6 +16,8 @@ addons:
     - libusb-1.0-0-dev # need this and not libusb-dev
 
 script:
+  # find out which C++ standard the compiler uses
+  - g++ -dM -E -x c++  /dev/null | grep -F __cplusplus
   - qmake --version
   - qmake
   - make
