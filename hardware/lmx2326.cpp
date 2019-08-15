@@ -1,6 +1,7 @@
 #include "lmx2326.h"
 #include <QDebug>
 #include "../hardware/controllers/interface.h"
+#include <cmath>
 
 lmx2326::lmx2326(msa::MSAdevice device, QObject *parent):genericPLL(parent)
 {
@@ -113,8 +114,8 @@ bool lmx2326::processNewScan()
 		ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, (*msa::getInstance().currentScan.steps)[step],step, error, hasFatalError);
 		if(error)
 			hasError = true;
-		Bcounter = floor(ncounter/32);
-		Acounter = round(ncounter-(Bcounter*32));
+		Bcounter = std::floor(ncounter/32);
+		Acounter = std::round(ncounter-(Bcounter*32));
 		if(Acounter < 0 || Acounter > 31 || Bcounter < 3 || Bcounter > 8191 || Acounter > Bcounter) {
 			hasError = true;
 			msa::getInstance().currentInterface->errorOcurred(parser->getDevice(), QString("There was a problem with the PLL register settings for step %1").arg(step), hasFatalError, false);
@@ -193,8 +194,8 @@ bool lmx2326::init()
 	msa::getInstance().currentScan.steps->insert(HW_INIT_STEP, st);
 	double ncounter = parser->parsePLLNCounter(msa::getInstance().currentScan.configuration, (*msa::getInstance().currentScan.steps)[HW_INIT_STEP],HW_INIT_STEP, error, fatalError);
 	if(ncounter > 0) {
-		double Bcounter = floor(ncounter/32);
-		double Acounter = round(ncounter-(Bcounter*32));
+		double Bcounter = std::floor(ncounter/32);
+		double Acounter = std::round(ncounter-(Bcounter*32));
 		//qDebug() << "PLL2 Acounter" << Acounter << "Bcounter" << Bcounter;
 		setFieldRegister(N_ACOUNTER_DIVIDER, quint32(Acounter));
 		setFieldRegister(N_BCOUNTER_DIVIDER, quint32(Bcounter));

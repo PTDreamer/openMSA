@@ -82,3 +82,5 @@ DISTFILES += \
     uncrustify.cfg
 
 RESOURCES     = systray.qrc
+
+CONFIG += c++11
