@@ -32,7 +32,6 @@
 #include <QJsonObject>
 #include <QDebug>
 #include <QDateTime>
-#include <QRandomGenerator>
 #include <QStandardPaths>
 
 #define STANDARD_FREQ_CAL_FILENAME "FrequencyCalibration.json"
