@@ -13,6 +13,9 @@ before_install:
 install:
   - cd ${TRAVIS_BUILD_DIR}/non-interactive-qt-installer
   - ${RUNNER}
+  - cd ${TRAVIS_BUILD_DIR}
+  - qmake
+  - make
 
 script:
   - qmake --version
