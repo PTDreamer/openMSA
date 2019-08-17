@@ -2,7 +2,7 @@ language: shell
 
 addons:
   apt:
-    packages: xvfb
+    packages: xvfb libusb-1.0-0-dev mesa-common-dev
 
 env:
   global:
