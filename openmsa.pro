@@ -13,7 +13,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 QT +=network
 QT += charts
 
-TARGET = openmsa
+TARGET = openMSA
 TEMPLATE = app
 
 # The following define makes your compiler emit warnings if you use
@@ -82,3 +82,13 @@ DISTFILES += \
     uncrustify.cfg
 
 RESOURCES     = systray.qrc
+
+linux-g++ {
+message("copying assets to $$OUT_PWD")
+#copydata.commands = $(COPY_DIR) $$PWD/deployment/li $$OUT_PWD
+copydata.commands = $(COPY) $$PWD/deployment/linux/* $$OUT_PWD
+first.depends = $(first) copydata
+export(first.depends)
+export(copydata.commands)
+QMAKE_EXTRA_TARGETS += first copydata
+}

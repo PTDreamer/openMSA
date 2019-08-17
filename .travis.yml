@@ -1,0 +1,43 @@
+language: cpp
+dist: Xenial
+addons:
+  apt:
+    packages: xvfb libusb-1.0-0-dev mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-0
+env:
+  global: RUNNER="non-interactive-qt-installer/qt_installer.sh"
+before_install: 
+install:
+- sudo apt-get -y install xvfb libusb-1.0-0-dev mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-0
+- qmake --version
+- wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+- chmod a+x linuxdeployqt-continuous-x86_64.AppImage
+- git clone https://github.com/skalee/non-interactive-qt-installer.git ${TRAVIS_BUILD_DIR}/non-interactive-qt-installer
+- cd ${TRAVIS_BUILD_DIR}/non-interactive-qt-installer
+- sudo xvfb-run -e /dev/stdout -s "-screen 0 1024x768x24" --auto-servernum --server-num=1 --error-file=/dev/stderr ./qt_installer.sh
+- cd ${TRAVIS_BUILD_DIR}
+- sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.1 /usr/lib/libGL.so
+
+script:
+- /opt/Qt/5.12.2/gcc_64/bin/qmake --version
+- /opt/Qt/5.12.2/gcc_64/bin/qmake
+- make -j$(nproc)
+- "${TRAVIS_BUILD_DIR}/linuxdeployqt-continuous-x86_64.AppImage ${TRAVIS_BUILD_DIR}/openMSA.desktop -verbose=1 -appimage -qmake=/opt/Qt/5.12.2/gcc_64/bin/qmake"
+- mv openMSA*.AppImage openMSA.AppImage
+
+deploy:
+  skip_cleanup: true
+  provider: releases
+  api_key:
+    secure: IPKAU87j48P98splVSNTPJ0v/aEcKiKbJW4pgt6ouL/6lovi22P1ALjd2JLHNMj1YZAXR+bjFlPMzLLloroKR6Fs77ZuxDaXUXSG6K7BCKvctfq02rCDBwRnVGhBcVjoYReuC6G1nEljiwAL95Bve5Hg9QWP7TCtgPKHgBNngfacNgfdpSPOcakgYaDKqbBjARxvBBKzGvwFG9gjTy9KVM263pj3UOW7RobMbydtyIdAFqD1AIRYfOdAh673tdZrZPAyjlf75xth906iQHBbVdTGGPiX1dTTgo0iJFy4pM2NOf/4D26pODpToJdROSqKqPmww0zygF+ecZ1VWxVs3pFbQOTEGiKwDF7L8gDlrYN0XU12amysV2y4+emMe8C9DJDv+b5+JulyLBf4GELgBmzrqkJJN1Qz6352pbz4vxn0fPqGDAmnzWX1g9qrpQ0/irl5eIi63N7ZD1subgbdViQ3iIwprGnNZZKsxkrNl9PGYM/oxN2qzVZ4vq5kJ/QEsoHFk/YbGzNyvqtpa+uNxeKwEt6ZoF6ov2smJFRMfPL4O2fEdcZYkfu1KTtJfM7O4mLIaCcWHtDkW4uNqmjprNtDOmtrx7JtiJNsQdg9qmDfniXGvsENzvaMKrId1pDGxy3u85dE7gs32cEBTCMOtGFHllHoenHFE7KruaXJhMg=
+  file: openMSA.AppImage
+  on:
+    tags: true
+
+matrix:
+  include:
+  - os: linux
+    dist: Xenial
+    env:
+    - QT_INSTALLER_DOWNLOAD_NAME="qt-unified-linux-x64-online.run"
+    - QT_INSTALLER_VARS="${TRAVIS_BUILD_DIR}/vars_linux.js"
+    - PATH="/opt/Qt/5.12.2/gcc_64/bin:${PATH}"
