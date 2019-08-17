@@ -1,0 +1,3 @@
+[submodule "non-interactive-qt-installer"]
+	path = non-interactive-qt-installer
+	url = https://github.com/skalee/non-interactive-qt-installer.git
