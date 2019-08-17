@@ -26,6 +26,6 @@ matrix:
       dist: bionic
       env:
         - QT_INSTALLER_DOWNLOAD_NAME="qt-unified-linux-x64-online.run"
-        - QT_INSTALLER_VARS="${TRAVIS_BUILD_DIR}/non-interactive-qt-installer/ci/vars_linux.js"
+        - QT_INSTALLER_VARS="${TRAVIS_BUILD_DIR}/vars_linux.js"
         - PATH="/opt/Qt/5.12.3/gcc_64/bin:${PATH}"
         - RUNNER='xvfb-run --auto-servernum --error-file=/dev/stderr ./qt_installer.sh'
