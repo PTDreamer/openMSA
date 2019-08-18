@@ -1,4 +1,6 @@
 language: shell
+dist: trusty
+
 addons:
   apt:
     packages: xvfb libusb-1.0-0-dev mesa-common-dev
@@ -16,7 +18,7 @@ install:
 script:
 - qmake --version
 - qmake
-- make
+- make -j$(nproc)
 - "${TRAVIS_BUILD_DIR}/linuxdeployqt-6-x86_64.AppImage ${TRAVIS_BUILD_DIR}/openMSA.desktop -verbose=3 -appimage -qmake=/opt/Qt/5.12.2/gcc_64/bin/qmake"
 matrix:
   include:
