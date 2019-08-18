@@ -1,5 +1,8 @@
 language: cpp
+compiler: gcc
+sudo: require
 dist: trusty
+
 addons:
   apt:
     packages: xvfb libusb-1.0-0-dev mesa-common-dev
