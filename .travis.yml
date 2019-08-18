@@ -22,6 +22,7 @@ script:
   - qmake --version
   - qmake
   - make
+  - linuxdeployqt-continuous-x86_64.AppImage ${TRAVIS_BUILD_DIR}/openMSA.desktop -verbose=3 -appimage -qmake=/opt/Qt/5.12.2/gcc_64/bin/qmake
   
 matrix:
   include:
