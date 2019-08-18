@@ -22,7 +22,7 @@ script:
   - qmake --version
   - qmake
   - make
-  - linuxdeployqt-6-x86_64.AppImage ${TRAVIS_BUILD_DIR}/openMSA.desktop -verbose=3 -appimage -qmake=/opt/Qt/5.12.2/gcc_64/bin/qmake
+  - ${TRAVIS_BUILD_DIR}/linuxdeployqt-6-x86_64.AppImage ${TRAVIS_BUILD_DIR}/openMSA.desktop -verbose=3 -appimage -qmake=/opt/Qt/5.12.2/gcc_64/bin/qmake
   
 matrix:
   include:
@@ -33,3 +33,11 @@ matrix:
         - QT_INSTALLER_VARS="${TRAVIS_BUILD_DIR}/vars_linux.js"
         - PATH="/opt/Qt/5.12.2/gcc_64/bin:${PATH}"
         - RUNNER='xvfb-run --auto-servernum --error-file=/dev/stderr ./qt_installer.sh'
+
+deploy:
+  provider: releases
+  api_key: "GITHUB OAUTH TOKEN"
+  file: "FILE TO UPLOAD"
+  skip_cleanup: true
+  on:
+    tags: true
