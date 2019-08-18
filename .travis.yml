@@ -3,11 +3,12 @@ dist: trusty
 
 addons:
   apt:
-    packages: xvfb libusb-1.0-0-dev mesa-common-dev
+    packages: xvfb libusb-1.0-0-dev libgl1-mesa-dev
 env:
   global: RUNNER="non-interactive-qt-installer/qt_installer.sh"
 before_install: 
 install:
+- lsb_release -a
 - wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
 - chmod a+x linuxdeployqt-continuous-x86_64.AppImage
 - git clone https://github.com/skalee/non-interactive-qt-installer.git ${TRAVIS_BUILD_DIR}/non-interactive-qt-installer
