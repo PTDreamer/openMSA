@@ -11,6 +11,7 @@ env:
 before_install:
 
 install:
+  - git clone https://github.com/skalee/non-interactive-qt-installer.git ${TRAVIS_BUILD_DIR}/non-interactive-qt-installer
   - cd ${TRAVIS_BUILD_DIR}/non-interactive-qt-installer
   - ${RUNNER}
   - cd ${TRAVIS_BUILD_DIR}
