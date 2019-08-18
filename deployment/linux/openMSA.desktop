@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=openMSA Backend
+Comment=Backend application for controlling Scotty's Spectrum Analyser
+Exec=openMSA
+Icon=openMSA
+Categories=Office;
+Name[en_US]=openMSA.desktop
