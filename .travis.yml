@@ -15,12 +15,12 @@ install:
   - ${RUNNER}
   - cd ${TRAVIS_BUILD_DIR}
   - sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.1 /usr/lib/libGL.so
-  - qmake
-  - make
 
 script:
   - qmake --version
-
+  - qmake
+  - make
+  
 matrix:
   include:
     - os: linux
