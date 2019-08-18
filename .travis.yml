@@ -1,9 +1,8 @@
-language: shell
+language: cpp
 dist: trusty
-
 addons:
   apt:
-    packages: xvfb libusb-1.0-0-dev libgl1-mesa-dev
+    packages: xvfb libusb-1.0-0-dev mesa-common-dev
 env:
   global: RUNNER="non-interactive-qt-installer/qt_installer.sh"
 before_install: 
