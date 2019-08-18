@@ -8,8 +8,8 @@ env:
   global: RUNNER="non-interactive-qt-installer/qt_installer.sh"
 before_install: 
 install:
-- wget https://github.com/probonopd/linuxdeployqt/releases/download/6/linuxdeployqt-6-x86_64.AppImage
-- chmod a+x linuxdeployqt-6-x86_64.AppImage
+- wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
+- chmod a+x linuxdeployqt-continuous-x86_64.AppImage
 - git clone https://github.com/skalee/non-interactive-qt-installer.git ${TRAVIS_BUILD_DIR}/non-interactive-qt-installer
 - cd ${TRAVIS_BUILD_DIR}/non-interactive-qt-installer
 - "${RUNNER}"
@@ -19,7 +19,7 @@ script:
 - qmake --version
 - qmake
 - make -j$(nproc)
-- "${TRAVIS_BUILD_DIR}/linuxdeployqt-6-x86_64.AppImage ${TRAVIS_BUILD_DIR}/openMSA.desktop -verbose=3 -appimage -qmake=/opt/Qt/5.12.2/gcc_64/bin/qmake"
+- "${TRAVIS_BUILD_DIR}/linuxdeployqt-continuous-x86_64.AppImage ${TRAVIS_BUILD_DIR}/openMSA.desktop -verbose=3 -appimage -qmake=/opt/Qt/5.12.2/gcc_64/bin/qmake"
 matrix:
   include:
   - os: linux
