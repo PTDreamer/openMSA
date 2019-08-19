@@ -7,10 +7,6 @@ env:
   global: RUNNER="non-interactive-qt-installer/qt_installer.sh"
 before_install: 
 install:
-- sudo add-apt-repository --yes ppa:beineri/opt-qt593-trusty
-- sudo apt-get update -qq
-- sudo apt-get -y install qt59base qt59declarative qt59webengine qt59translations
-- source /opt/qt*/bin/qt*-env.sh
 - qmake --version
 - lsb_release -a
 - wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
