@@ -24,7 +24,7 @@ script:
 matrix:
   include:
   - os: linux
-    dist: bionic
+    dist: Xenial
     env:
     - QT_INSTALLER_DOWNLOAD_NAME="qt-unified-linux-x64-online.run"
     - QT_INSTALLER_VARS="${TRAVIS_BUILD_DIR}/vars_linux.js"
