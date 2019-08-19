@@ -2,7 +2,7 @@ language: cpp
 
 addons:
   apt:
-    packages: xvfb libusb-1.0-0-dev mesa-common-dev
+    packages: xvfb libusb-1.0-0-dev mesa-common-dev qt5-default
 env:
   global: RUNNER="non-interactive-qt-installer/qt_installer.sh"
 before_install: 
