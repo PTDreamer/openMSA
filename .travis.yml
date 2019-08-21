@@ -1,13 +1,12 @@
 language: cpp
-
+dist: Xenial
 addons:
   apt:
-    packages: xvfb libusb-1.0-0-dev mesa-common-dev
+    packages: xvfb libusb-1.0-0-dev mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-0
 env:
   global: RUNNER="non-interactive-qt-installer/qt_installer.sh"
 before_install: 
 install:
-- sudo apt-get -y install xvfb libusb-1.0-0-dev mesa-common-dev libgl1-mesa-dev libxkbcommon-x11-0
 - qmake --version
 - lsb_release -a
 - wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
@@ -17,20 +16,14 @@ install:
 - sudo xvfb-run -e /dev/stdout -s "-screen 0 1024x768x24" --auto-servernum --server-num=1 --error-file=/dev/stderr ./qt_installer.sh
 - cd ${TRAVIS_BUILD_DIR}
 - sudo ln -s /usr/lib/x86_64-linux-gnu/libGL.so.1 /usr/lib/libGL.so
+
 script:
 - /opt/Qt/5.12.2/gcc_64/bin/qmake --version
 - /opt/Qt/5.12.2/gcc_64/bin/qmake
 - make -j$(nproc)
 - "${TRAVIS_BUILD_DIR}/linuxdeployqt-continuous-x86_64.AppImage ${TRAVIS_BUILD_DIR}/openMSA.desktop -verbose=1 -appimage -qmake=/opt/Qt/5.12.2/gcc_64/bin/qmake"
 - mv openMSA*.AppImage openMSA.AppImage
-matrix:
-  include:
-  - os: linux
-    dist: Xenial
-    env:
-    - QT_INSTALLER_DOWNLOAD_NAME="qt-unified-linux-x64-online.run"
-    - QT_INSTALLER_VARS="${TRAVIS_BUILD_DIR}/vars_linux.js"
-    - PATH="/opt/Qt/5.12.2/gcc_64/bin:${PATH}"
+
 deploy:
   skip_cleanup: true
   provider: releases
@@ -39,3 +32,12 @@ deploy:
   file: openMSA.AppImage
   on:
     repo: PTDreamer/openMSA
+
+matrix:
+  include:
+  - os: linux
+    dist: Xenial
+    env:
+    - QT_INSTALLER_DOWNLOAD_NAME="qt-unified-linux-x64-online.run"
+    - QT_INSTALLER_VARS="${TRAVIS_BUILD_DIR}/vars_linux.js"
+    - PATH="/opt/Qt/5.12.2/gcc_64/bin:${PATH}"
